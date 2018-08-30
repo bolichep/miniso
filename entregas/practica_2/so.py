@@ -65,7 +65,9 @@ class KillInterruptionHandler(AbstractInterruptionHandler):
         # por ahora apagamos el hardware porque estamos ejecutando un solo programa
         if HARDWARE.memory.get(HARDWARE.cpu.pc) != INSTRUCTION_IO and HARDWARE.memory.get(HARDWARE.cpu.pc) != INSTRUCTION_EXIT and HARDWARE.memory.get(HARDWARE.cpu.pc) != INSTRUCTION_CPU :
             log.logger.info(" Program Finished ")
-            HARDWARE.clock.stop()
+
+            HARDWARE.cpu.pc = -1
+            #HARDWARE.clock.stop()
             #HARDWARE.switchOff()
         else :
             log.logger.info(" Attempt to finish ")
@@ -94,10 +96,13 @@ class Kernel():
         # set CPU program counter at program's first intruction
         HARDWARE.cpu.pc = 0
 
+        while HARDWARE.cpu.pc != -1:
+            pass
+
     def runBatch(self, batch):
         for prog in batch:
+            log.logger.info("\n\bSended to run program: {name}".format(name=prog.name))
             self.run(prog)
-
 
 
     def __repr__(self):
