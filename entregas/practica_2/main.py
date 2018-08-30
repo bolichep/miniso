@@ -26,7 +26,7 @@ if __name__ == '__main__':
     prg2 = Program("prg2.exe", [ASM.CPU(4), ASM.IO(), ASM.CPU(1)])
     prg3 = Program("prg3.exe", [ASM.CPU(3)])
 
-    batch = [prg1, prg2]#, prg3]
+    batch = [prg1, prg2, prg3]
     #  execute the program
     kernel.runBatch(batch)
 
