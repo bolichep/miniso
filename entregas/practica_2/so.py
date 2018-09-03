@@ -62,7 +62,7 @@ class AbstractInterruptionHandler():
 class KillInterruptionHandler(AbstractInterruptionHandler):
 
     def execute(self, irq):
-        # por ahora apagamos el hardware porque estamos ejecutando un solo programa
+        # "detenemos" el cpu 
             log.logger.info(" Program Finished ")
             HARDWARE.cpu.pc = -1
 
@@ -97,7 +97,7 @@ class Kernel():
         for prog in batch:
             log.logger.info("\n\bSended to run program: {name}".format(name=prog.name))
             self.run(prog)
-        HARDWARE.switchOff()
+        HARDWARE.clock.stop()
 
 
     def __repr__(self):
