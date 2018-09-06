@@ -8,3 +8,4 @@
 | ----------------               | ------------------------------ | -------------------  |
 |  Lucas Rodriguez F             | ld.fennema@gmail.com           | FennemaRL            |
 |  Juan Carlos Francisco Stabile | jcfstabile@gmail.com           | stabile              |
+|  Luciano Ferreiro              | luciano.ferreiro95@gmail.com   | donba                |
