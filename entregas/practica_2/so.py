@@ -63,8 +63,10 @@ class KillInterruptionHandler(AbstractInterruptionHandler):
 
     def execute(self, irq):
         # "detenemos" el cpu 
-            log.logger.info(" Program Finished ")
-            HARDWARE.cpu.pc = -1
+        if len(self.kernel.readyQueue) == 0:
+            HARDWARE.switchOff()
+        else:
+            self.kernel.run(self.kernel.readyQueue.pop(0))
 
 
 # emulates the core of an Operative System
@@ -74,6 +76,7 @@ class Kernel():
         ## setup interruption handlers
         killHandler = KillInterruptionHandler(self)
         HARDWARE.interruptVector.register(KILL_INTERRUPTION_TYPE, killHandler)
+        self._readyQueue =[]
 
     def load_program(self, program):
         # loads the program in main memory  
@@ -82,6 +85,10 @@ class Kernel():
             inst = program.instructions[index]
             HARDWARE.memory.put(index, inst)
 
+
+    @property 
+    def readyQueue(self):
+       return self._readyQueue
     ## emulates a "system call" for programs execution  
     def run(self, program):
         self.load_program(program)
@@ -90,14 +97,11 @@ class Kernel():
 
         # set CPU program counter at program's first intruction
         HARDWARE.cpu.pc = 0
-        while HARDWARE.cpu.pc != -1:
-            pass
 
     def runBatch(self, batch):
         for prog in batch:
-            log.logger.info("\n\bSended to run program: {name}".format(name=prog.name))
-            self.run(prog)
-        HARDWARE.clock.stop()
+            self.readyQueue.append(prog)    
+        self.run(self.readyQueue.pop(0))
 
 
     def __repr__(self):
