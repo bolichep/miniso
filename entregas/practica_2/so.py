@@ -69,8 +69,6 @@ class KillInterruptionHandler(AbstractInterruptionHandler):
             self.kernel.run(self.kernel.readyQueue.pop(0))
 
 
-class loader();
-
 # emulates the core of an Operative System
 class Kernel():
 
