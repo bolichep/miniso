@@ -3,7 +3,15 @@
 from hardware import *
 import log
 
+from enum import Enum, unique
 
+@unique
+class state(Enum):
+    NEW = 1
+    READY = 2
+    WAITING = 3
+    RUNNING = 4
+    TERMINATED = 5
 
 ## emulates a compiled program
 class Program():
@@ -94,6 +102,15 @@ class AbstractInterruptionHandler():
         log.logger.error("-- EXECUTE MUST BE OVERRIDEN in class {classname}".format(classname=self.__class__.__name__))
 
 
+class NewInterruptionHandler(AbstractInterruptionHandler):
+
+    def execute(self, irq):
+        pcb = ProcessControlBlock(programPath = irq.parameters, 
+                baseDir = self.kernel.baseDir)
+        log.logger.info("New process {pcb}".format(pcb))
+        log.logger.info("insert process in table")
+        log.logger.info("load code to memory: {program}".format(program=irq.parameters))
+        self.kernel.loader.load(irq.parameters)
 
 class KillInterruptionHandler(AbstractInterruptionHandler):
 
@@ -130,29 +147,31 @@ class PID():
     def __init__(self):
         self._number = 0
 
-    def getNewPit(self):
+    def new(self):
         return self._number
         self._number += 1
-# emulates a true pcb(creado por mi :S)
+
 
 class ProcessControlBlock():
 
-    def __init__(self, nameProgram, pid, basedir):
-        self._pid = pid
-        self._basedir = basedir
-        self._pc  = 0
-        self._state ="New"
-        if nameProgram != None:
-            self._path = nameProgram
+    def __init__(self, programPath, baseDir):
+        self._pid = PID()
+        self._baseDir = baseDir
+        self._pc  = -1
+        self._state = state.NEW
+        self._path = programPath
+
     @property
     def pid(self):
         return self._pid
+ 
     @property
     def path(self):
         return self._path
+
     @property
-    def basedir(self):
-        return self._basedir
+    def baseDir(self):
+        return self._baseDir
     
 # emulates the loader program( prueba)
 class Loader():
@@ -162,20 +181,21 @@ class Loader():
     @property
     def memoryPos(self):
         return self._memoryPos
-
     
-    def memoryPosSetter(self, value):
+    @memoryPos.setter
+    def memoryPos(self, value):
         self._memoryPos = value
 
     def load(self, program):
         progSize = len(program.instructions)
-        basedir = self.memoryPos
+        baseDir = self.memoryPos
+        log.logger.info("Loader.load.....")
         for index in range(self.memoryPos , (progSize + self.memoryPos)):
             inst = program.instructions[index - self.memoryPos]
             HARDWARE.memory.put(index, inst)
 
-        self.memoryPosSetter(index + 1)
-        return basedir
+        self.memoryPos = index + 1
+        return baseDir
 
   
 
@@ -184,6 +204,9 @@ class Kernel():
 
     def __init__(self):
         ## setup interruption handlers
+        newHandler = NewInterruptionHandler(self)
+        HARDWARE.interruptVector.register(NEW_INTERRUPTION_TYPE, newHandler)
+
         killHandler = KillInterruptionHandler(self)
         HARDWARE.interruptVector.register(KILL_INTERRUPTION_TYPE, killHandler)
 
@@ -199,12 +222,17 @@ class Kernel():
         self._pid= PID()
 
         self._readyQueue = []
+        self._IOQueue = []
         self._loader = Loader()
 
 
     @property 
     def readyQueue(self):
        return self._readyQueue
+   
+    @property 
+    def IOQueue(self):
+       return self._IOQueue
     
     @property
     def pid(self):
@@ -222,14 +250,18 @@ class Kernel():
     def load_program(self, program):
         # loads the program in main memory
         basedir = self.loader.load(program)
-        pcb = ProcessControlBlock(program.name, self.pid.getNewPit(), basedir)
-        self.readyQueue.append(pcb)
+        #pcb = ProcessControlBlock(program.name, self.pid.new(), basedir)
+        #self.readyQueue.append(pcb)
  
     ## emulates a "system call" for programs execution
     def run(self, program):
-        self.load_program(program)
+        log.logger.info("#send #New interrupt")
+        newINT = IRQ(NEW_INTERRUPTION_TYPE,program)
+        HARDWARE.interruptVector.handle(newINT)
+        #self.load_program(program)
         log.logger.info("\n Executing program: {name}".format(name=program.name))
         log.logger.info(HARDWARE)
+        #log.logger.info("DEBUG EXIT"); quit()
 
         # set CPU program counter at program's first intruction
         HARDWARE.cpu.pc = 0

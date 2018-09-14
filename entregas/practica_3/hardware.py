@@ -37,6 +37,7 @@ class ASM():
 
 
 ##  Estas son la interrupciones soportadas por nuestro Kernel
+NEW_INTERRUPTION_TYPE  = "#NEW"
 KILL_INTERRUPTION_TYPE = "#KILL"
 IO_IN_INTERRUPTION_TYPE = "#IO_IN"
 IO_OUT_INTERRUPTION_TYPE = "#IO_OUT"
