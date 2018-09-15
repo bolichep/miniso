@@ -105,12 +105,13 @@ class AbstractInterruptionHandler():
 class NewInterruptionHandler(AbstractInterruptionHandler):
 
     def execute(self, irq):
-        pcb = ProcessControlBlock(programPath = irq.parameters, 
-                baseDir = self.kernel.baseDir)
-        log.logger.info("New process {pcb}".format(pcb))
+        baseText = self.kernel.loader.doIt(irq.parameters)
+        log.logger.info("load code to memory: {program} in {baseText}".format(
+            program=irq.parameters, baseText = baseText) )
+        pcb = ProcessControlBlock(programPath = irq.parameters,
+                baseDir = baseText)
+        log.logger.info("New process {pcb}".format(pcb = pcb.pid))
         log.logger.info("insert process in table")
-        log.logger.info("load code to memory: {program}".format(program=irq.parameters))
-        self.kernel.loader.load(irq.parameters)
 
 class KillInterruptionHandler(AbstractInterruptionHandler):
 
@@ -144,18 +145,18 @@ class IoOutInterruptionHandler(AbstractInterruptionHandler):
 
 #pid counter
 class PID():
-    def __init__(self):
-        self._number = 0
+    number = 0
 
+    @classmethod
     def new(self):
-        return self._number
-        self._number += 1
+        self.number += 1
+        return self.number
 
 
 class ProcessControlBlock():
 
     def __init__(self, programPath, baseDir):
-        self._pid = PID()
+        self._pid = PID.new()
         self._baseDir = baseDir
         self._pc  = -1
         self._state = state.NEW
@@ -175,26 +176,28 @@ class ProcessControlBlock():
     
 # emulates the loader program( prueba)
 class Loader():
-    def __init__(self):
-        self._memoryPos = 0
+    def __init__(self, initialFreeCell):
+        self._firstFreeCell = initialFreeCell
 
     @property
-    def memoryPos(self):
-        return self._memoryPos
+    def firstFreeCell(self):
+        return self._firstFreeCell
     
-    @memoryPos.setter
-    def memoryPos(self, value):
-        self._memoryPos = value
+    @firstFreeCell.setter
+    def firstFreeCell(self, value):
+        self._firstFreeCell = value
 
-    def load(self, program):
+    def doIt(self, program):
+
+        # para: program is a instance of Program
         progSize = len(program.instructions)
-        baseDir = self.memoryPos
+        baseDir = self.firstFreeCell
         log.logger.info("Loader.load.....")
-        for index in range(self.memoryPos , (progSize + self.memoryPos)):
-            inst = program.instructions[index - self.memoryPos]
+        for index in range(self.firstFreeCell , (progSize + self.firstFreeCell)):
+            inst = program.instructions[index - self.firstFreeCell]
             HARDWARE.memory.put(index, inst)
 
-        self.memoryPos = index + 1
+        self.firstFreeCell = index + 1
         return baseDir
 
   
@@ -223,7 +226,7 @@ class Kernel():
 
         self._readyQueue = []
         self._IOQueue = []
-        self._loader = Loader()
+        self._loader = Loader(initialFreeCell = 0)
 
 
     @property 
