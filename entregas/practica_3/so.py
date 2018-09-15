@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+#log.logger.info("DEBUG EXIT"); quit()
 
 from hardware import *
 import log
@@ -12,6 +13,8 @@ class state(Enum):
     WAITING = 3
     RUNNING = 4
     TERMINATED = 5
+
+
 
 ## emulates a compiled program
 class Program():
@@ -130,7 +133,10 @@ class IoInInterruptionHandler(AbstractInterruptionHandler):
     def execute(self, irq):
         operation = irq.parameters
         pcb = {'pc': HARDWARE.cpu.pc} # porque hacemos esto ???
+
+        ##TODO### Aca deberimos hacer el switch context ???????
         HARDWARE.cpu.pc = -1   ## dejamos el CPU IDLE
+
         self.kernel.ioDeviceController.runOperation(pcb, operation)
         log.logger.info(self.kernel.ioDeviceController)
 
@@ -143,6 +149,20 @@ class IoOutInterruptionHandler(AbstractInterruptionHandler):
         log.logger.info(self.kernel.ioDeviceController)
 
 
+class Dispatcher():
+    
+    def __init__(self):
+        pass
+
+    def Load(self, pcb):
+        HARDWARE.cpu.pc = pcb.get('pc')
+        HARDWARE.mmu.baseDir = pcb.get('baseDir')
+
+    def Save(self, pcb):
+        pcb.update({'pc': HARDWARE.cpu.pc})
+
+
+
 #pid counter
 class PID():
     number = 0
@@ -151,6 +171,39 @@ class PID():
     def new(self):
         self.number += 1
         return self.number
+
+class PCBTable():
+    # _currentPID is grater than 0
+    # _table 
+
+    def __init__(self):
+        #
+        self._currentPID = 1 # este seria el proceso uno
+        self._table = {1: ProcessControlBlock('init', None)}
+
+    def get(self, pid):
+        # denota un PCB con el pid dado
+        # prec: el pcb con el pid dado existe en _table
+        return self._table.get(pid)
+
+    def Add(self, pcb):
+        #agregar pcb a la _tabla (diccionario)
+        #prec: el pcb no esta en la tabla
+        self._table.update({pcb.get('pid'): pcb})
+        pass
+
+    def Remove(self, pid):
+        #remueve el pcb con pid de _table (diccionario)
+        # prec: no esta en ningun queue
+        pass
+
+    @property
+    def runningPCB(self):
+        return self._currentPID
+
+    @runningPCB.setter
+    def runningPCB(self, value):
+        self._currentPID = value
 
 
 class ProcessControlBlock():
@@ -161,6 +214,15 @@ class ProcessControlBlock():
         self._pc  = -1
         self._state = state.NEW
         self._path = programPath
+
+    @property
+    def pc(self):
+        return self._pc
+
+    @pc.setter
+    def pc(self, value):
+        self._pc = value
+
 
     @property
     def pid(self):
@@ -192,7 +254,7 @@ class Loader():
         # para: program is a instance of Program
         progSize = len(program.instructions)
         baseDir = self.firstFreeCell
-        log.logger.info("Loader.load.....")
+        log.logger.info("Loader.doIt.....")
         for index in range(self.firstFreeCell , (progSize + self.firstFreeCell)):
             inst = program.instructions[index - self.firstFreeCell]
             HARDWARE.memory.put(index, inst)
@@ -222,10 +284,7 @@ class Kernel():
         ## controls the Hardware's I/O Device
         self._ioDeviceController = IoDeviceController(HARDWARE.ioDevice)
 
-        self._pid= PID()
-
         self._readyQueue = []
-        self._IOQueue = []
         self._loader = Loader(initialFreeCell = 0)
 
 
@@ -233,10 +292,6 @@ class Kernel():
     def readyQueue(self):
        return self._readyQueue
    
-    @property 
-    def IOQueue(self):
-       return self._IOQueue
-    
     @property
     def pid(self):
         return self._pid
@@ -250,12 +305,6 @@ class Kernel():
     def ioDeviceController(self):
         return self._ioDeviceController
     
-    def load_program(self, program):
-        # loads the program in main memory
-        basedir = self.loader.load(program)
-        #pcb = ProcessControlBlock(program.name, self.pid.new(), basedir)
-        #self.readyQueue.append(pcb)
- 
     ## emulates a "system call" for programs execution
     def run(self, program):
         log.logger.info("#send #New interrupt")
@@ -264,7 +313,6 @@ class Kernel():
         #self.load_program(program)
         log.logger.info("\n Executing program: {name}".format(name=program.name))
         log.logger.info(HARDWARE)
-        #log.logger.info("DEBUG EXIT"); quit()
 
         # set CPU program counter at program's first intruction
         HARDWARE.cpu.pc = 0
