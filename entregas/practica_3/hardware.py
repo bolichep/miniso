@@ -158,6 +158,9 @@ class MMU():
     def baseDir(self, baseDir):
         self._baseDir = baseDir
 
+    def baseDirSetter(self, baseDir):
+        self._baseDir = baseDir
+
     def fetch(self,  logicalAddress):
         if (logicalAddress > self._limit):
             raise Exception("Invalid Address,  {logicalAddress} is higher than process limit: {limit}".format(limit = self._limit, logicalAddress = logicalAddress))
@@ -196,11 +199,14 @@ class Cpu():
     def _execute(self):
         if ASM.isEXIT(self._ir):
             killIRQ = IRQ(KILL_INTERRUPTION_TYPE)
+            log.logger.info(HARDWARE.cpu.pc + HARDWARE.mmu.baseDir -1)# ayuda visual
             self._interruptVector.handle(killIRQ)
         elif ASM.isIO(self._ir):
             ioInIRQ = IRQ(IO_IN_INTERRUPTION_TYPE, self._ir)
+            log.logger.info(HARDWARE.cpu.pc + HARDWARE.mmu.baseDir -1)# ayuda visual
             self._interruptVector.handle(ioInIRQ)
         else:
+            log.logger.info(HARDWARE.cpu.pc + HARDWARE.mmu.baseDir -1)# ayuda visual
             log.logger.info("cpu - Exec: {instr}, PC={pc}".format(instr=self._ir, pc=self._pc))
 
     @property
