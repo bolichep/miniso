@@ -161,6 +161,24 @@ class Dispatcher():
     def Save(self, pcb):
         pcb.update({'pc': HARDWARE.cpu.pc})
 
+class ReadyQueue():
+
+    def __init__(self):
+        pass
+
+    def isEmpty(self):
+        pass
+
+    def first(self):
+        pass
+
+    def dequeue(self):
+        pass
+
+    def enqueue(self):
+        pass
+
+
 
 
 #pid counter
@@ -187,14 +205,17 @@ class PCBTable():
         return self._table.get(pid)
 
     def Add(self, pcb):
-        #agregar pcb a la _tabla (diccionario)
+        #prop: agregar pcb a la _tabla (diccionario)
         #prec: el pcb no esta en la tabla
+        #para: pcb es instancia de ProcessControlBlock
         self._table.update({pcb.get('pid'): pcb})
         pass
 
     def Remove(self, pid):
         #remueve el pcb con pid de _table (diccionario)
-        # prec: no esta en ningun queue
+        # prec: pid esta en estado finalizado, no esta en ningun queue
+        # para: pid es un id de proceso
+        self._table.pop(pid)
         pass
 
     @property
@@ -284,8 +305,9 @@ class Kernel():
         ## controls the Hardware's I/O Device
         self._ioDeviceController = IoDeviceController(HARDWARE.ioDevice)
 
-        self._readyQueue = []
         self._loader = Loader(initialFreeCell = 0)
+        self._pcbTable = PCBTable()
+        self._readyQueue = ReadyQueue()
 
 
     @property 
@@ -300,6 +322,9 @@ class Kernel():
     def loader(self):
         return self._loader
     
+    @property
+    def pcbTable(self):
+        return seld._pcbTable
     
     @property
     def ioDeviceController(self):
