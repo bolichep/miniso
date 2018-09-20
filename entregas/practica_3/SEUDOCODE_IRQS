@@ -1,0 +1,54 @@
+#NEW
+
+pid = PCBTable get new pid
+
+newPCB = PCB (pid , baseDir = loader.load(program) ,  state = new)
+
+PCBTable agregar newPCB
+
+if PCBTable.running PCB == None
+
+  newPCB.state = running
+  PCBTable.running = newPCB
+  dispacher.load(newPCB)
+
+else
+  newPCB.state = ready
+  readyQueue.update (newPCB)
+
+#KILL
+
+pcbFinished = PCBTable.running
+#dispatcher.save(pcbFinished)
+pcbfinished.state = terminated
+dispatcher.save(pcbFinished)
+PCBtable.running = None
+
+
+#IO_IN
+
+pcb = PCBTable.running
+PCBTable.running PCB == None
+dispatcher.save(pcb)
+PCBTable.running PCB == None
+pcb.state = waiting
+IODeviceControler.runOP pcb, op
+if readyQueue empty
+   pcbRun = readyQueue.pop(0)
+   pcbRun.state = running
+   PCBTable.running PCB = pcbRUN
+
+
+#IO_OUT
+
+pcb = IODeviceGetfinishedPCB
+
+if PCBTable.running PCB == None
+  pcb.state = running
+  PCBTable.running = PCB
+  dispatcher.load(PCB)
+else
+  PCB a readyQueueA
+  PCBTable.running = ready
+  
+
