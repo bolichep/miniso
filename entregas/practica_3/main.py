@@ -32,7 +32,6 @@ if __name__ == '__main__':
     kernel.run(prg2)
     kernel.run(prg3)
     # execute the program
-    kernel.run(prg)
 
 
 

@@ -100,27 +100,27 @@ class KillInterruptionHandler(AbstractInterruptionHandler):
 
     def execute(self, irq):
         log.logger.info(" Program Finished ")
-        if len(self.kernel.readyQueue ) != 0:
-            pcbFinish = self.kernel.readyQueue.pop(0)
-            pcbFinish.state = State.sterminated
-            self.kernel.pcbTable.runningPCB = None
-            if len(self.kernel.readyQueue) > 1 :
-                newRunningPCB = self.kernel.readyQueue[0]
-                newRunningPCB.state = State.srunning
-                self.kernel.pcbTable.running = newRunningPCB
-                self.kernel.dispacher.load(self.kernel.readyQueue[0]) ## (original -1) ahora toma el valor pc del pcb
-            else:
-                HARDWARE.switchOff()
+        pcbfinished = self.kernel.pcbTable.runningPCB
+        pcbfinished.state = State.sterminated
+        self.kernel.dispacher.save(pcbfinished)
+        self.kernel.pcbTable.runningPCB = None
+        if self.kernel.readyQueue : 
+            nextPCB = self.kernel.readyQueue.pop(0)
+            self.kernel.dispacher.load(nextPCB)
+            self.kernel.pcbTable.runningPCB = nextPCB
+
+
 
 class IoInInterruptionHandler(AbstractInterruptionHandler):
 
     def execute(self, irq):
         operation = irq.parameters
-        pcb = self.kernel.readyQueue.pop(0)  #pcb ={'pc': HARDWARE.cpu.pc } # porque hacemos esto ??? para guardar el "estado actual del proceso"
+        pcb = self.kernel.pcbTable.runningPCB
+        pcb.state = State.swaiting
         self.kernel.dispacher.save(pcb)                              #   HARDWARE.cpu.pc = -1
-        if len(self.kernel.readyQueue) >= 1:
-            pcb.state = State.swaiting
-            pcbRunning =self.kernel.readyQueue[0]
+        self.kernel.pcbTable.runningPCB = None
+        if self.kernel.readyQueue :
+            pcbRunning = self.kernel.readyQueue.pop(0)
             pcbRunning.state = State.srunning
             self.kernel.pcbTable.runningPCB = pcbRunning
             self.kernel.dispacher.load(pcbRunning)
@@ -134,19 +134,13 @@ class IoOutInterruptionHandler(AbstractInterruptionHandler):
 
     def execute(self, irq):
         pcb = self.kernel.ioDeviceController.getFinishedPCB()
-        #HARDWARE.cpu.pc =  pcb['pc'] #original
         pcb.state = State.sready
-        self.kernel.readyQueue.append(pcb)
-        #prueba ->
-        #pcbinProgres = self.kernel.pcbTable.runningPCB
-        #self.kernel.dispacher.save(pcbinProgres)
-        #pcbinProgres.state = State.sready
-        #self.kernel.readyQueue.insert(0, pcb)
-        #self.kernel.dispacher.load(pcb)
-        #self.kernel.pcbTable.runningPCB = pcb
-        if len(self.kernel.readyQueue) == 1 :
+        if self.kernel.pcbTable.runningPCB == None :
             self.kernel.dispacher.load(pcb)
-
+            pcb.state = State.srunning
+            self.kernel.pcbTable.runningPCB = pcb
+        else :
+            self.kernel.readyQueue.append(pcb)
         
         log.logger.info(self.kernel.ioDeviceController)
 
@@ -302,9 +296,13 @@ class Kernel():
         basedir = self.loader.load(program)
         pcb = ProcessControlBlock(program.name, self.pcbTable.getNewPit(), basedir)
         pcb.state = State.sready
-        self.readyQueue.append(pcb)
-        self.pcbTable.add(pcb)
- 
+        if self.pcbTable.runningPCB == None :
+            pcb.state = State.srunning
+            self.pcbTable.runningPCB = pcb
+            self.dispacher.load(pcb)
+        else : 
+            self.readyQueue.append(pcb)
+         
     ## emulates a "system call" for programs execution
     def run(self, program):
         self.load_program(program)
@@ -312,9 +310,6 @@ class Kernel():
         log.logger.info(HARDWARE)
 
         # set CPU program counter at program's first intruction
-        HARDWARE.cpu.pc = 0
-        self.pcbTable.runningPCB = self.readyQueue[0]
-
 
     def __repr__(self):
         return "Kernel "
