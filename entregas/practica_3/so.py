@@ -96,6 +96,12 @@ class AbstractInterruptionHandler():
 
 
 
+class NewInterruptionHandler(AbstractInterruptionHandler):
+
+    def execute(self, irq):
+        pass
+
+
 class KillInterruptionHandler(AbstractInterruptionHandler):
 
     def execute(self, irq):
@@ -169,19 +175,25 @@ class PcbTable():
         self._pid = 0
         self._QueuePcb = []
         self._running = None
+
     def get(self, pid):
         return self._QueuePcb.index(pid)
+
     def add(self, pcb):
         self._QueuePcb.insert(pcb.pid, pcb)
+
     def remove(self, pid):
         self._QueuePcb.pop(pid)
+
     @property
     def runningPCB(self):
         return self._running
+
     @runningPCB.setter
     def runningPCB(self, pcb):
         self._running = pcb
-    def getNewPit(self):
+
+    def getNewPid(self):
         return self._pid
         self._pid +=1    
 
@@ -196,24 +208,31 @@ class ProcessControlBlock():
         self._state =State.snew
         if nameProgram != None:
             self._path = nameProgram
+            
     @property
     def pid(self):
         return self._pid
+
     @property
     def path(self):
         return self._path
+
     @property
     def baseDir(self):
         return self._baseDir
+
     @property
     def pc(self):
         return self._pc 
+
     @pc.setter
     def pc(self, pc):
         self._pc = pc
+
     @property
     def state(self):
         return self._state
+
     @state.setter
     def state(self, state):
         self._state = state
@@ -294,7 +313,7 @@ class Kernel():
     def load_program(self, program):
         # loads the program in main memory
         basedir = self.loader.load(program)
-        pcb = ProcessControlBlock(program.name, self.pcbTable.getNewPit(), basedir)
+        pcb = ProcessControlBlock(program.name, self.pcbTable.getNewPid(), basedir)
         pcb.state = State.sready
         if self.pcbTable.runningPCB == None :
             pcb.state = State.srunning
