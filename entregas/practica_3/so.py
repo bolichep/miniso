@@ -193,16 +193,21 @@ class PcbTable():
     def runningPCB(self, pcb):
         self._running = pcb
 
-    def getNewPid(self):
-        return self._pid
-        self._pid +=1    
 
+#pid counter
+class pid():
+    number = 0
+
+    @classmethod
+    def new(self):
+        self.number += 1
+        return self.number
 
 
 # emulates a  pcb(creado por mi :S)
 class ProcessControlBlock():
-    def __init__(self, nameProgram, pid, baseDir):
-        self._pid = pid
+    def __init__(self, nameProgram, baseDir):
+        self._pid = pid.new()
         self._baseDir = baseDir
         self._pc  = 0
         self._state =State.snew
@@ -313,7 +318,7 @@ class Kernel():
     def load_program(self, program):
         # loads the program in main memory
         basedir = self.loader.load(program)
-        pcb = ProcessControlBlock(program.name, self.pcbTable.getNewPid(), basedir)
+        pcb = ProcessControlBlock(program.name, basedir)
         pcb.state = State.sready
         if self.pcbTable.runningPCB == None :
             pcb.state = State.srunning
