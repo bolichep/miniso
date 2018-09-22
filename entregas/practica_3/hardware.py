@@ -195,13 +195,7 @@ class Cpu():
 
 
     def _fetch(self):
-        #test fetch ph_address only once
-        self._testFetchL.append(self._pc + self._mmu.baseDir)
-        if len(self._testFetchL) != len(list(set(self._testFetchL))):
-            log.logger.info("WARNING!!! fetching same addr twice!!!!")
-            print(self._testFetchL)
-            print(list(set(self._testFetchL)))
-        #end test
+        self._testFetch()
         self._ir = self._mmu.fetch(self._pc)
         self._pc += 1
 
@@ -227,6 +221,13 @@ class Cpu():
     def pc(self, addr):
         self._pc = addr
 
+    def _testFetch(self):
+        #test fetch ph_address only once
+        self._testFetchL.append(self._pc + self._mmu.baseDir)
+        if len(self._testFetchL) != len(list(set(self._testFetchL))):
+            log.logger.info("WARNING!!! fetching same addr twice!!!!")
+            print(self._testFetchL)
+            print(list(set(self._testFetchL)))
 
     def __repr__(self):
         return "CPU(PC={pc})".format(pc=self._pc)
