@@ -99,7 +99,17 @@ class AbstractInterruptionHandler():
 class NewInterruptionHandler(AbstractInterruptionHandler):
 
     def execute(self, irq):
-        pass
+        program = irq.parameters
+        log.logger.info("New loading {p}".format(p=program))
+        basedir = self.kernel.loader.load(program)
+        pcb = ProcessControlBlock(program, basedir)
+        pcb.state = State.snew
+        if self.kernel.pcbTable.runningPCB == None:
+            pcb.state = State.srunning
+            self.kernel.pcbTable.runningPCB = pcb
+            self.kernel.dispacher.load(pcb)
+        else: 
+            self.kernel.readyQueue.append(pcb)
 
 
 class KillInterruptionHandler(AbstractInterruptionHandler):
@@ -206,6 +216,7 @@ class pid():
 
 # emulates a  pcb(creado por mi :S)
 class ProcessControlBlock():
+
     def __init__(self, nameProgram, baseDir):
         self._pid = pid.new()
         self._baseDir = baseDir
@@ -272,6 +283,9 @@ class Kernel():
 
     def __init__(self):
         ## setup interruption handlers
+        newHandler = NewInterruptionHandler(self)
+        HARDWARE.interruptVector.register(NEW_INTERRUPTION_TYPE, newHandler)
+
         killHandler = KillInterruptionHandler(self)
         HARDWARE.interruptVector.register(KILL_INTERRUPTION_TYPE, killHandler)
 
@@ -317,6 +331,7 @@ class Kernel():
     
     def load_program(self, program):
         # loads the program in main memory
+        """
         basedir = self.loader.load(program)
         pcb = ProcessControlBlock(program.name, basedir)
         pcb.state = State.sready
@@ -326,9 +341,13 @@ class Kernel():
             self.dispacher.load(pcb)
         else : 
             self.readyQueue.append(pcb)
+        """
          
     ## emulates a "system call" for programs execution
     def run(self, program):
+        newINT = IRQ(NEW_INTERRUPTION_TYPE, program)
+        log.logger.info("Set New Int Handler")# ayuda visual
+        HARDWARE.interruptVector.handle(newINT)
         self.load_program(program)
         log.logger.info("\n Executing program: {name}".format(name=program.name))
         log.logger.info(HARDWARE)
