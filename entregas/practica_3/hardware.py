@@ -178,6 +178,8 @@ class Cpu():
         self._interruptVector = interruptVector
         self._pc = -1
         self._ir = None
+        # for test
+        self._testFetchL = []
 
 
     def tick(self, tickNbr):
@@ -193,6 +195,13 @@ class Cpu():
 
 
     def _fetch(self):
+        #test fetch ph_address only once
+        self._testFetchL.append(self._pc + self._mmu.baseDir)
+        if len(self._testFetchL) != len(list(set(self._testFetchL))):
+            log.logger.info("WARNING!!! fetching same addr twice!!!!")
+            print(self._testFetchL)
+            print(list(set(self._testFetchL)))
+        #end test
         self._ir = self._mmu.fetch(self._pc)
         self._pc += 1
 
