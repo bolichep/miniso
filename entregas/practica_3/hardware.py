@@ -183,8 +183,8 @@ class Cpu():
     def tick(self, tickNbr):
         if (self._pc > -1):
             log.logger.info("Fetch Addr, Physical: {pa:>3} Logical: {la:>3}".format(
-                la = HARDWARE.cpu.pc, 
-                pa = HARDWARE.cpu.pc + HARDWARE.mmu.baseDir))# ayuda visual
+                la = self._pc, 
+                pa = self._pc + self._mmu.baseDir))# ayuda visual
             self._fetch()
             self._decode()
             self._execute()
