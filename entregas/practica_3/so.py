@@ -116,9 +116,9 @@ class KillInterruptionHandler(AbstractInterruptionHandler):
 
     def execute(self, irq):
         log.logger.info(" Program Finished ")
-        pcbfinished = self.kernel.pcbTable.runningPCB
-        pcbfinished.state = State.sterminated
-        self.kernel.dispacher.save(pcbfinished)
+        pcbFinished = self.kernel.pcbTable.runningPCB
+        pcbFinished.state = State.sterminated
+        self.kernel.dispacher.save(pcbFinished)
         self.kernel.pcbTable.runningPCB = None
         if self.kernel.readyQueue : 
             nextPCB = self.kernel.readyQueue.pop(0)
