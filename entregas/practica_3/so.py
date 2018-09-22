@@ -329,26 +329,12 @@ class Kernel():
     def ioDeviceController(self):
         return self._ioDeviceController
     
-    def load_program(self, program):
-        # loads the program in main memory
-        """
-        basedir = self.loader.load(program)
-        pcb = ProcessControlBlock(program.name, basedir)
-        pcb.state = State.sready
-        if self.pcbTable.runningPCB == None :
-            pcb.state = State.srunning
-            self.pcbTable.runningPCB = pcb
-            self.dispacher.load(pcb)
-        else : 
-            self.readyQueue.append(pcb)
-        """
          
     ## emulates a "system call" for programs execution
     def run(self, program):
         newINT = IRQ(NEW_INTERRUPTION_TYPE, program)
         log.logger.info("Set New Int Handler")# ayuda visual
         HARDWARE.interruptVector.handle(newINT)
-        self.load_program(program)
         log.logger.info("\n Executing program: {name}".format(name=program.name))
         log.logger.info(HARDWARE)
 
