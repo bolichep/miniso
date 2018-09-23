@@ -159,9 +159,6 @@ class MMU():
     def baseDir(self, baseDir):
         self._baseDir = baseDir
 
-    def baseDirSetter(self, baseDir):
-        self._baseDir = baseDir
-
     def fetch(self,  logicalAddress):
         if (logicalAddress > self._limit):
             raise Exception("Invalid Address,  {logicalAddress} is higher than process limit: {limit}".format(limit = self._limit, logicalAddress = logicalAddress))

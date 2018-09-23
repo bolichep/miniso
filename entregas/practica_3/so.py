@@ -270,7 +270,8 @@ class Loader():
     def memoryPos(self):
         return self._memoryPos
 
-    def memoryPosSetter(self, value):
+    @memoryPos.setter
+    def memoryPos(self, value):
         self._memoryPos = value
 
     def load(self, program):
@@ -280,7 +281,7 @@ class Loader():
             inst = program.instructions[index - self.memoryPos]
             HARDWARE.memory.put(index, inst)
 
-        self.memoryPosSetter(index + 1)
+        self.memoryPos = index + 1
         return basedir
 
   
