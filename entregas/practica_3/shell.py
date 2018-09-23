@@ -48,7 +48,7 @@ class shell():
                     if comandos:
                         count = int(comandos[0])
                     while count:
-                        HARDWARE.cpu.tick(1)
+                        HARDWARE.clock.tick(1)
                         count -= 1
 
             except KeyboardInterrupt:
