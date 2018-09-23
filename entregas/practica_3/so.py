@@ -261,6 +261,10 @@ class ProcessControlBlock():
     def state(self, state):
         self._state = state
 
+    def __repr__(self):
+        return "PCB: pid:{} baseDir: {} pc:{} state:{}".format(
+                self._pid, self._baseDir, self._pc, self._state)
+
 # emulates the loader program( prueba)
 class Loader():
     def __init__(self):
