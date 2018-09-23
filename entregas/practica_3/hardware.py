@@ -169,6 +169,8 @@ class MMU():
         physicalAddress = logicalAddress + self._baseDir
         return self._memory.get(physicalAddress)
 
+    def __repr__(self):
+        return "MMU(BD={bd}, L={l})".format(bd=self._baseDir, l=self._limit)
 
 ## emulates the main Central Processor Unit
 class Cpu():
