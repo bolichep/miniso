@@ -183,9 +183,6 @@ class Cpu():
 
     def tick(self, tickNbr):
         if (self._pc > -1):
-            log.logger.info("Fetch Addr, Physical: {pa:>3} Logical: {la:>3}".format(
-                la = self._pc, 
-                pa = self._pc + self._mmu.baseDir))# ayuda visual
             self._fetch()
             self._decode()
             self._execute()
@@ -222,6 +219,9 @@ class Cpu():
 
     def _testFetch(self):
         #test fetch ph_address only once
+        log.logger.debug("Fetch Addr, Physical: {pa:>3} Logical: {la:>3}".format(
+            la = self._pc, 
+            pa = self._pc + self._mmu.baseDir))# ayuda visual
         self._testFetchL.append(self._pc + self._mmu.baseDir)
         if len(self._testFetchL) != len(list(set(self._testFetchL))):
             log.logger.info("WARNING!!! fetching same addr twice!!!!")
