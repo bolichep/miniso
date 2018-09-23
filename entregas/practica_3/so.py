@@ -211,6 +211,9 @@ class PcbTable():
     def runningPCB(self, pcb):
         self._running = pcb
 
+    def __repr__(self):
+        return "PCBTable:\n {}".format(self._tablePcb)
+
 
 #pid counter
 class pid():
@@ -262,7 +265,7 @@ class ProcessControlBlock():
         self._state = state
 
     def __repr__(self):
-        return "PCB: pid:{} baseDir: {} pc:{} state:{}".format(
+        return "PCB: pid:{:>3} baseDir:{:>3} pc:{:>3} state:{}\n".format(
                 self._pid, self._baseDir, self._pc, self._state)
 
 # emulates the loader program( prueba)
