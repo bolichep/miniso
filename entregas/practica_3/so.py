@@ -103,8 +103,11 @@ class NewInterruptionHandler(AbstractInterruptionHandler):
         basedir = self.kernel.loader.load(program)
         pcb = ProcessControlBlock(program, basedir)
         pcb.state = State.snew
+        # TODO: not two updates!!!
+        self.kernel.pcbTable.update(pcb) #add pcb
         if self.kernel.pcbTable.runningPCB == None:
             pcb.state = State.srunning
+            self.kernel.pcbTable.update(pcb) #add pcb
             self.kernel.pcbTable.runningPCB = pcb
             self.kernel.dispacher.load(pcb)
         else: 
@@ -119,6 +122,7 @@ class KillInterruptionHandler(AbstractInterruptionHandler):
         pcbFinished.state = State.sterminated
         self.kernel.dispacher.save(pcbFinished)
         self.kernel.pcbTable.runningPCB = None
+        self.kernel.pcbTable.remove(pcbFinished.pid)
         if self.kernel.readyQueue : 
             nextPCB = self.kernel.readyQueue.pop(0)
             self.kernel.dispacher.load(nextPCB)
@@ -132,12 +136,15 @@ class IoInInterruptionHandler(AbstractInterruptionHandler):
         operation = irq.parameters
         pcb = self.kernel.pcbTable.runningPCB
         pcb.state = State.swaiting
-        self.kernel.dispacher.save(pcb)                              #   HARDWARE.cpu.pc = -1
+        self.kernel.dispacher.save(pcb)      # HARDWARE.cpu.pc = -1
         self.kernel.pcbTable.runningPCB = None
+        # TODO: no two update
+        self.kernel.pcbTable.update(pcb) #update pcb
         if self.kernel.readyQueue :
             pcbRunning = self.kernel.readyQueue.pop(0)
             pcbRunning.state = State.srunning
             self.kernel.pcbTable.runningPCB = pcbRunning
+            self.kernel.pcbTable.update(pcb) #update pcb
             self.kernel.dispacher.load(pcbRunning)
         
         log.logger.info(self.kernel.ioDeviceController)
@@ -150,10 +157,13 @@ class IoOutInterruptionHandler(AbstractInterruptionHandler):
     def execute(self, irq):
         pcb = self.kernel.ioDeviceController.getFinishedPCB()
         pcb.state = State.sready
+        self.kernel.pcbTable.update(pcb) #update pcb
+        # TODO: no two update
         if self.kernel.pcbTable.runningPCB == None :
             self.kernel.dispacher.load(pcb)
             pcb.state = State.srunning
             self.kernel.pcbTable.runningPCB = pcb
+            self.kernel.pcbTable.update(pcb) #update pcb
         else :
             self.kernel.readyQueue.append(pcb)
         
@@ -181,18 +191,17 @@ class State(Enum):
 #emul pcb table
 class PcbTable():
     def __init__(self):
-        self._pid = 0
-        self._QueuePcb = []
+        self._tablePcb = dict()
         self._running = None
 
     def get(self, pid):
-        return self._QueuePcb.index(pid)
+        return self._tablePcb.get(pid)
 
-    def add(self, pcb):
-        self._QueuePcb.insert(pcb.pid, pcb)
+    def update(self, pcb):
+        self._tablePcb.update({pcb.pid: pcb})
 
     def remove(self, pid):
-        self._QueuePcb.pop(pid)
+        self._tablePcb.pop(pid)
 
     @property
     def runningPCB(self):
@@ -261,7 +270,6 @@ class Loader():
     def memoryPos(self):
         return self._memoryPos
 
-    
     def memoryPosSetter(self, value):
         self._memoryPos = value
 
@@ -309,25 +317,20 @@ class Kernel():
        return self._readyQueue
     
     @property
-    def pid(self):
-        return self._pid
-
-    @property
     def loader(self):
         return self._loader
+
     @property
     def pcbTable(self):
         return self._pcbTable
+
     @property
     def dispacher(self):
         return self._dispacher
     
-    
-    
     @property
     def ioDeviceController(self):
         return self._ioDeviceController
-    
          
     ## emulates a "system call" for programs execution
     def run(self, program):
@@ -337,6 +340,9 @@ class Kernel():
         log.logger.info("\n Executing program: {name}".format(name=program.name))
         log.logger.info(HARDWARE)
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> master
     def __repr__(self):
         return "Kernel "
