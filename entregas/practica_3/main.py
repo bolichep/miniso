@@ -1,6 +1,7 @@
 from hardware import *
 from so import *
 import log
+from shell import *
 
 
 ##
@@ -31,9 +32,8 @@ if __name__ == '__main__':
     kernel.run(prg1)
     kernel.run(prg2)
     kernel.run(prg3)
-    # execute the program
 
 
-
-
+    #load consola
+    shell.com(kernel)
 

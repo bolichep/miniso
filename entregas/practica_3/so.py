@@ -5,7 +5,6 @@ import log
 from enum import Enum
 
 
-
 ## emulates a compiled program
 class Program():
 
@@ -338,7 +337,6 @@ class Kernel():
         log.logger.info("\n Executing program: {name}".format(name=program.name))
         log.logger.info(HARDWARE)
 
-        # set CPU program counter at program's first intruction
 
     def __repr__(self):
         return "Kernel "
