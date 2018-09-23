@@ -340,9 +340,5 @@ class Kernel():
         log.logger.info("\n Executing program: {name}".format(name=program.name))
         log.logger.info(HARDWARE)
 
-<<<<<<< HEAD
-
-=======
->>>>>>> master
     def __repr__(self):
         return "Kernel "
