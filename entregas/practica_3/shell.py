@@ -5,8 +5,8 @@ import so
 class shell():
 
     def com(kernel):
-        log.logger.setLevel(60) # apago el log
-        HARDWARE.switchOff()
+        #log.logger.setLevel(60) # apago el log
+        #HARDWARE.switchOff()
         _consolaCorriendo = True
         while (_consolaCorriendo):
             print("& ", end="")
