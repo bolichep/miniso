@@ -33,6 +33,9 @@ class shell():
                 if comandos[0] == 'state':
                     print(HARDWARE.cpu, HARDWARE.mmu)
 
+                if comandos[0] == 'readyqueue':
+                    print(kernel.readyQueue)
+
                 if comandos[0] == 'memory':
                     print(HARDWARE.memory)
 
