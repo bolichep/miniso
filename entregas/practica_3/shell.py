@@ -2,32 +2,60 @@ from hardware import *
 import log
 from so import *
 
+
 class shell():
     help_c = """
-    nolog      : suprime la salidad de log.logger
-    log        : habilita la salida de log.logger
-    start      : enciende el hardware
-    halt       : detiene el hardware
-    stop       : detiene el hardware
-    quit       : sale del shell
-    state      : muestra el estado del CPU y la MMU
-    iodevice   : muestra el estado del iodevice y su cola
-    readyqueue : muestra los PCB en el readyQueue
-    memory     : muestra el contenido de la memoria
-    pcbtable   : muestra el contenido de la tabla de PCB
-    tick [n]   : envia n (o 1 por omision) tick de clock a los dispositivos subscriptos
+    nolog          : suprime la salida de log.logger
+    log            : habilita la salida de log.logger
+    start          : enciende el hardware
+    halt           : detiene el hardware
+    stop           : detiene el hardware
+    quit           : sale del shell
+    state          : muestra el estado del CPU y la MMU
+    iodevice       : muestra el estado del iodevice y su cola (waiting)
+    readyqueue     : muestra los PCB en el readyQueue
+    memory         : muestra el contenido de la memoria
+    pcbtable       : muestra el contenido de la tabla de PCB
+    tick [n]       : envia n (o 1 por omision) tick de clock a los dispositivos subscriptos
+    ls             : lista los programas salvados
+    save name code : salva el codigo en 'code' bajo el nombre 'name'
+                     ej: save uno CPU,IO,CPU,EXIT
+    load name      : carga el codigo bajo el nombre 'name' para ser usado en run
+    run            : corre el codigo previamente cargado con load
     """
+
+    fs = dict()
+    fs.update({'uno':'CPU,CPU,IO,CPU,CPU,CPU,IO,CPU,CPU'})
+    fs.update({'dos':'CPU,CPU,CPU,CPU,IO,CPU'})
+    fs.update({'tres':'CPU,CPU,CPU'})
 
     def com(kernel):
         #log.logger.setLevel(60) # apago el log
         #HARDWARE.switchOff()
         _consolaCorriendo = True
+        _code = []
+        _name = []
         while (_consolaCorriendo):
             try:
                 comandos = []
                 while not comandos:
                     print("& ", end="")
                     comandos = input().split()
+
+                if comandos[0] == 'ls':
+                    for f in shell.fs:
+                        print("{:<8} {}".format(f, shell.fs.get(f)))
+
+                if comandos[0] == 'save':
+                    shell.fs.update({comandos[1]: comandos[2]})
+
+                if comandos[0] == 'load':
+                    _code = shell.fs.get(comandos[1])
+                    _name = comandos[1]
+                    print(_code)
+
+                if comandos[0] == 'run':
+                    kernel.run(Program(_name, [_code.split(",")]))
 
                 if comandos[0] == 'help':
                     print(shell.help_c)
