@@ -3,6 +3,20 @@ import log
 from so import *
 
 class shell():
+    help_c = """
+    nolog      : suprime la salidad de log.logger
+    log        : habilita la salida de log.logger
+    start      : enciende el hardware
+    halt       : detiene el hardware
+    stop       : detiene el hardware
+    quit       : sale del shell
+    state      : muestra el estado del CPU y la MMU
+    iodevice   : muestra el estado del iodevice y su cola
+    readyqueue : muestra los PCB en el readyQueue
+    memory     : muestra el contenido de la memoria
+    pcbtable   : muestra el contenido de la tabla de PCB
+    tick [n]   : envia n (o 1 por omision) tick de clock a los dispositivos subscriptos
+    """
 
     def com(kernel):
         #log.logger.setLevel(60) # apago el log
@@ -14,6 +28,9 @@ class shell():
                 while not comandos:
                     print("& ", end="")
                     comandos = input().split()
+
+                if comandos[0] == 'help':
+                    print(shell.help_c)
 
                 if comandos[0] == 'nolog':
                     log.logger.setLevel(60)
@@ -61,5 +78,5 @@ class shell():
                         count -= 1
 
             except KeyboardInterrupt:
-                print("\nTo exit, type: quit<Enter>")
+                print("\nTo exit, type: quit<Enter>\nor help to see commands")
                 pass
