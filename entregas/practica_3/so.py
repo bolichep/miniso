@@ -93,7 +93,53 @@ class AbstractInterruptionHandler():
     def execute(self, irq):
         log.logger.error("-- EXECUTE MUST BE OVERRIDEN in class {classname}".format(classname=self.__class__.__name__))
 
+    def contextSwitchFromRunningTo(self, toState):
+        prevPCB = self.kernel.pcbTable.runningPCB
+        prevPCB.state = toState
+        self.kernel.dispacher.save(prevPCB)
+        self.kernel.pcbTable.runningPCB = None
+        if toState == State.sterminated:
+            self.kernel.pcbTable.remove(prevPCB.pid)
+        else:
+            self.kernel.pcbTable.update(prevPCB)
+        if self.kernel.readyQueue:
+            nextPCB = self.kernel.readyQueue.pop(0)
+            nextPCB.state = State.srunning
+            self.kernel.pcbTable.runningPCB = nextPCB
+            self.kernel.pcbTable.update(nextPCB)
+            self.kernel.dispacher.load(nextPCB)
+        return prevPCB
 
+    def contextSwitchToReadyOrRunning(self, nextPCB):
+        if self.kernel.pcbTable.runningPCB == None:
+            self.kernel.dispacher.load(nextPCB)
+            nextPCB.state = State.srunning
+            self.kernel.pcbTable.runningPCB = nextPCB
+        else:
+            nextPCB.state = State.sready
+            self.kernel.readyQueue.append(nextPCB)
+        self.kernel.pcbTable.update(nextPCB)
+
+
+
+
+
+
+class KillInterruptionHandler(AbstractInterruptionHandler):
+
+    def execute(self, irq):
+        log.logger.info(" Program Finished ")
+        self.contextSwitchFromRunningTo(State.sterminated)
+
+
+class IoInInterruptionHandler(AbstractInterruptionHandler):
+
+    def execute(self, irq):
+        operation = irq.parameters
+        pcb = self.contextSwitchFromRunningTo(State.swaiting)
+        log.logger.info(self.kernel.ioDeviceController)
+        self.kernel.ioDeviceController.runOperation(pcb, operation)
+        
 
 class NewInterruptionHandler(AbstractInterruptionHandler):
 
@@ -103,53 +149,9 @@ class NewInterruptionHandler(AbstractInterruptionHandler):
         basedir = self.kernel.loader.load(program)
         pcb = ProcessControlBlock(program, basedir)
         pcb.state = State.snew
-        # TODO: not two updates!!!
         self.kernel.pcbTable.update(pcb) #add pcb
-        if self.kernel.pcbTable.runningPCB == None:
-            pcb.state = State.srunning
-            self.kernel.pcbTable.update(pcb) #add pcb
-            self.kernel.pcbTable.runningPCB = pcb
-            self.kernel.dispacher.load(pcb)
-        else: 
-            self.kernel.readyQueue.append(pcb)
-
-
-class KillInterruptionHandler(AbstractInterruptionHandler):
-
-    def execute(self, irq):
-        log.logger.info(" Program Finished ")
-        pcbFinished = self.kernel.pcbTable.runningPCB
-        pcbFinished.state = State.sterminated
-        self.kernel.dispacher.save(pcbFinished)
-        self.kernel.pcbTable.runningPCB = None
-        self.kernel.pcbTable.remove(pcbFinished.pid)
-        if self.kernel.readyQueue : 
-            nextPCB = self.kernel.readyQueue.pop(0)
-            self.kernel.dispacher.load(nextPCB)
-            self.kernel.pcbTable.runningPCB = nextPCB
-
-
-
-class IoInInterruptionHandler(AbstractInterruptionHandler):
-
-    def execute(self, irq):
-        operation = irq.parameters
-        pcb = self.kernel.pcbTable.runningPCB
-        pcb.state = State.swaiting
-        self.kernel.dispacher.save(pcb)      # HARDWARE.cpu.pc = -1
-        self.kernel.pcbTable.runningPCB = None
-        # TODO: no two update
-        self.kernel.pcbTable.update(pcb) #update pcb
-        if self.kernel.readyQueue :
-            pcbRunning = self.kernel.readyQueue.pop(0)
-            pcbRunning.state = State.srunning
-            self.kernel.pcbTable.runningPCB = pcbRunning
-            self.kernel.pcbTable.update(pcb) #update pcb
-            self.kernel.dispacher.load(pcbRunning)
-        
-        log.logger.info(self.kernel.ioDeviceController)
-        self.kernel.ioDeviceController.runOperation(pcb, operation)
-        
+        # to ready or running
+        self.contextSwitchToReadyOrRunning(pcb)
 
 
 class IoOutInterruptionHandler(AbstractInterruptionHandler):
@@ -158,15 +160,8 @@ class IoOutInterruptionHandler(AbstractInterruptionHandler):
         pcb = self.kernel.ioDeviceController.getFinishedPCB()
         pcb.state = State.sready
         self.kernel.pcbTable.update(pcb) #update pcb
-        # TODO: no two update
-        if self.kernel.pcbTable.runningPCB == None :
-            self.kernel.dispacher.load(pcb)
-            pcb.state = State.srunning
-            self.kernel.pcbTable.runningPCB = pcb
-            self.kernel.pcbTable.update(pcb) #update pcb
-        else :
-            self.kernel.readyQueue.append(pcb)
-        
+        # to ready or running
+        self.contextSwitchToReadyOrRunning(pcb)
         log.logger.info(self.kernel.ioDeviceController)
 
 
@@ -343,7 +338,7 @@ class Kernel():
     ## emulates a "system call" for programs execution
     def run(self, program):
         newINT = IRQ(NEW_INTERRUPTION_TYPE, program)
-        log.logger.info("Set New Int Handler")# ayuda visual
+        #log.logger.info("Set New Int Handler")# ayuda visual
         HARDWARE.interruptVector.handle(newINT)
         log.logger.info("\n Executing program: {name}".format(name=program.name))
         log.logger.info(HARDWARE)
