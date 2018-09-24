@@ -9,9 +9,12 @@ class shell():
         #HARDWARE.switchOff()
         _consolaCorriendo = True
         while (_consolaCorriendo):
-            print("& ", end="")
             try:
-                comandos = input().split()
+                comandos = []
+                while not comandos:
+                    print("& ", end="")
+                    comandos = input().split()
+
                 if comandos[0] == 'nolog':
                     log.logger.setLevel(60)
 
