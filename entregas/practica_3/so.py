@@ -171,6 +171,7 @@ class Dispacher():
     def load(self, pcb):
         HARDWARE.cpu.pc = pcb.pc
         HARDWARE.mmu.baseDir = pcb.baseDir
+        HARDWARE.mmu.limit = pcb.limit
     def save(self, pcb):
         pcb.pc = HARDWARE.cpu.pc
         HARDWARE.cpu.pc = -1
