@@ -146,8 +146,8 @@ class NewInterruptionHandler(AbstractInterruptionHandler):
     def execute(self, irq):
         program = irq.parameters
         log.logger.info("New loading {p}".format(p=program))
-        basedir = self.kernel.loader.load(program)
-        pcb = ProcessControlBlock(program, basedir)
+        baseDir, limit = self.kernel.loader.load(program)
+        pcb = ProcessControlBlock(program, baseDir, limit)
         pcb.state = State.snew
         self.kernel.pcbTable.update(pcb) #add pcb
         # to ready or running
@@ -223,13 +223,13 @@ class pid():
 # emulates a  pcb(creado por mi :S)
 class ProcessControlBlock():
 
-    def __init__(self, nameProgram, baseDir):
+    def __init__(self, nameProgram, baseDir, limit):
         self._pid = pid.new()
         self._baseDir = baseDir
+        self._limit = limit
         self._pc  = 0
         self._state =State.snew
-        if nameProgram != None:
-            self._path = nameProgram
+        self._path = nameProgram
             
     @property
     def pid(self):
@@ -242,6 +242,10 @@ class ProcessControlBlock():
     @property
     def baseDir(self):
         return self._baseDir
+
+    @property
+    def limit(self):
+        return self._limit
 
     @property
     def pc(self):
@@ -260,8 +264,8 @@ class ProcessControlBlock():
         self._state = state
 
     def __repr__(self):
-        return "PCB: pid:{:>3} baseDir:{:>3} pc:{:>3} state:{}\n".format(
-                self._pid, self._baseDir, self._pc, self._state)
+        return "PCB: pid:{:>3} baseDir:{:>3} pc:{:>3} limit:{:>3} state: {}\n".format(
+                self._pid, self._baseDir, self._pc, self._limit, self._state)
 
 # emulates the loader program( prueba)
 class Loader():
@@ -278,13 +282,13 @@ class Loader():
 
     def load(self, program):
         progSize = len(program.instructions)
-        basedir = self.memoryPos
+        baseDir = self.memoryPos
         for index in range(self.memoryPos , (progSize + self.memoryPos)):
             inst = program.instructions[index - self.memoryPos]
             HARDWARE.memory.put(index, inst)
 
         self.memoryPos = index + 1
-        return basedir
+        return baseDir, progSize - 1 # limit = progSize - 1
 
   
 
