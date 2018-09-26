@@ -88,6 +88,7 @@ class shell():
                     print(kernel.readyQueue)
 
                 if comandos[0] == 'memory':
+                    print(kernel.loader.memoryMap)
                     print(HARDWARE.memory)
 
                 if comandos[0] == 'pcbtable':
