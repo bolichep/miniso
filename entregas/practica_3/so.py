@@ -272,6 +272,7 @@ class ProcessControlBlock():
 class Loader():
     def __init__(self):
         self._memoryPos = 0
+        self._memoryMap = {}
 
     @property
     def memoryPos(self):
@@ -281,14 +282,24 @@ class Loader():
     def memoryPos(self, value):
         self._memoryPos = value
 
+    @property
+    def memoryMap(self):
+        return self._memoryMap
+
+    @memoryMap.setter
+    def memoryMap(self, value):
+        self._memoryMap = value
+
     def load(self, program):
         progSize = len(program.instructions)
+        #TODO here get baseDir of first free spot
         baseDir = self.memoryPos
         for index in range(self.memoryPos , (progSize + self.memoryPos)):
             inst = program.instructions[index - self.memoryPos]
             HARDWARE.memory.put(index, inst)
 
         self.memoryPos = index + 1
+        self.memoryMap.update({baseDir: progSize-1})
         return baseDir, progSize - 1 # limit = progSize - 1
 
   
