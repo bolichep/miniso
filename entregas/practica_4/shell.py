@@ -85,7 +85,7 @@ class shell():
                     print(kernel.ioDeviceController)
 
                 if comandos[0] == 'readyqueue':
-                    print(kernel.readyQueue)
+                    print(kernel.scheduler.readyQueue)
 
                 if comandos[0] == 'memory':
                     print(HARDWARE.memory)
