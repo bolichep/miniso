@@ -172,6 +172,7 @@ class Dispacher():
         HARDWARE.cpu.pc = pcb.pc
         HARDWARE.mmu.baseDir = pcb.baseDir
         HARDWARE.mmu.limit = pcb.limit
+
     def save(self, pcb):
         pcb.pc = HARDWARE.cpu.pc
         HARDWARE.cpu.pc = -1
@@ -224,13 +225,22 @@ class pid():
 # emulates a  pcb(creado por mi :S)
 class ProcessControlBlock():
 
-    def __init__(self, nameProgram, baseDir, limit):
+    def __init__(self, nameProgram, baseDir, limit, priority = 0):
         self._pid = pid.new()
         self._baseDir = baseDir
         self._limit = limit
         self._pc  = 0
         self._state =State.snew
         self._path = nameProgram
+        self._priority = priority 
+
+    @property
+    def priority(self):
+        return self._priority
+
+    @priority.setter
+    def priority(self, value):
+        self._priority = value
             
     @property
     def pid(self):
@@ -291,6 +301,42 @@ class Loader():
         self.memoryPos = index + 1
         return baseDir, progSize - 1 # limit = progSize - 1
 
+class AbstractScheduler():
+
+    def emptyReadyQueue(self):
+        return []
+
+class SchedulerNonPreemtive(AbstractScheduler):
+
+    def __init__(self):
+        self._readyQueue = self.emptyReadyQueue()
+
+    @property
+    def readyQueue(self):
+        return self._readyQueue
+
+    def add(self, pcb):
+        first = self._readyQueue.pop()
+        if first.priority < pcb.priority:
+            self._readyQueue.append(pcb)
+            self._readyQueue.append(first)
+        else:
+            self._readyQueue.append(first)
+            self._readyQueue.append(pcb)
+
+    def getNext(self):
+        (first, second) = (self._readyQueue.pop(), self._readyQueue.pop())
+        if first.prioirity < second.priority:
+            self._readyQueue.append(second)
+            return first
+        else:
+            self._readyQueue.append(first)
+            return second
+
+    def hasNext(self):
+        return  self._readyQueue
+
+  
 class SchedulerFCFS():
 
     def __init__(self):
@@ -300,8 +346,8 @@ class SchedulerFCFS():
     def readyQueue(self):
         return self._readyQueue
 
-    def add(self, nextPCB):
-        self._readyQueue.append(nextPCB)
+    def add(self, pcb):
+        self._readyQueue.append(pcb)
 
     def getNext(self):
         return self._readyQueue.pop(0)
@@ -309,7 +355,6 @@ class SchedulerFCFS():
     def hasNext(self):
         return  self._readyQueue
 
-  
 
 # emulates the core of an Operative System
 class Kernel():
