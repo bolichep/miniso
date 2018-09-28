@@ -102,8 +102,8 @@ class AbstractInterruptionHandler():
             self.kernel.pcbTable.remove(prevPCB.pid)
         else:
             self.kernel.pcbTable.update(prevPCB)
-        if self.kernel.readyQueue:
-            nextPCB = self.kernel.readyQueue.pop(0)
+        if self.kernel.scheduler.hasNext():
+            nextPCB = self.kernel.scheduler.getNext()
             nextPCB.state = State.srunning
             self.kernel.pcbTable.runningPCB = nextPCB
             self.kernel.pcbTable.update(nextPCB)
@@ -117,7 +117,7 @@ class AbstractInterruptionHandler():
             self.kernel.pcbTable.runningPCB = nextPCB
         else:
             nextPCB.state = State.sready
-            self.kernel.readyQueue.append(nextPCB)
+            self.kernel.scheduler.add(nextPCB)
         self.kernel.pcbTable.update(nextPCB)
 
 
@@ -291,12 +291,27 @@ class Loader():
         self.memoryPos = index + 1
         return baseDir, progSize - 1 # limit = progSize - 1
 
+class SchedulerFCFS():
+
+    def __init__(self):
+        self._readyQueue = []
+
+
+    def add(self, nextPCB):
+        self._readyQueue.append(nextPCB)
+
+    def getNext(self):
+        return self._readyQueue.pop(0)
+
+    def hasNext(self):
+        return  self._readyQueue
+
   
 
 # emulates the core of an Operative System
 class Kernel():
 
-    def __init__(self):
+    def __init__(self, scheduler):
         ## setup interruption handlers
         newHandler = NewInterruptionHandler(self)
         HARDWARE.interruptVector.register(NEW_INTERRUPTION_TYPE, newHandler)
@@ -316,7 +331,7 @@ class Kernel():
         self._pcbTable = PcbTable()
         self._dispacher = Dispacher()
 
-        self._readyQueue = []
+        self._scheduler = scheduler
         self._loader = Loader()
 
 
@@ -347,6 +362,10 @@ class Kernel():
         HARDWARE.interruptVector.handle(newINT)
         log.logger.info("\n Executing program: {name}".format(name=program.name))
         log.logger.info(HARDWARE)
+
+    @property
+    def scheduler(self):
+        return self._scheduler
 
     def __repr__(self):
         return "Kernel "

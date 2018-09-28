@@ -19,7 +19,9 @@ if __name__ == '__main__':
 
     ## new create the Operative System Kernel
     # "booteamos" el sistema operativo
-    kernel = Kernel()
+    scheduler = SchedulerFCFS()
+
+    kernel = Kernel(scheduler)
 
     # Ahora vamos a intentar ejecutar 3 programas a la vez
     ##################
