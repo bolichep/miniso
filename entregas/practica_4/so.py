@@ -335,9 +335,6 @@ class Kernel():
         self._loader = Loader()
 
 
-    @property 
-    def readyQueue(self):
-       return self._readyQueue
     
     @property
     def loader(self):
