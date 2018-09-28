@@ -144,10 +144,10 @@ class IoInInterruptionHandler(AbstractInterruptionHandler):
 class NewInterruptionHandler(AbstractInterruptionHandler):
 
     def execute(self, irq):
-        program = irq.parameters
-        log.logger.info("New loading {p}".format(p=program))
+        (program, priority) = irq.parameters
+        log.logger.info("New loading {} {}".format(program, priority))
         baseDir, limit = self.kernel.loader.load(program)
-        pcb = ProcessControlBlock(program, baseDir, limit)
+        pcb = ProcessControlBlock(program, baseDir, limit, priority)
         pcb.state = State.snew
         self.kernel.pcbTable.update(pcb) #add pcb
         # to ready or running
@@ -275,8 +275,8 @@ class ProcessControlBlock():
         self._state = state
 
     def __repr__(self):
-        return "PCB: pid:{:>3} baseDir:{:>3} pc:{:>3} limit:{:>3} state: {}\n".format(
-                self._pid, self._baseDir, self._pc, self._limit, self._state)
+        return "PCB: pid:{:>3} prio:{:>2} baseDir:{:>3} pc:{:>3} limit:{:>3} state: {}\n".format(
+                self._pid, self._priority, self._baseDir, self._pc, self._limit, self._state)
 
 # emulates the loader program( prueba)
 class Loader():
@@ -301,6 +301,7 @@ class Loader():
         self.memoryPos = index + 1
         return baseDir, progSize - 1 # limit = progSize - 1
 
+
 class AbstractScheduler():
 
     def emptyReadyQueue(self):
@@ -316,22 +317,33 @@ class SchedulerNonPreemtive(AbstractScheduler):
         return self._readyQueue
 
     def add(self, pcb):
-        first = self._readyQueue.pop()
-        if first.priority < pcb.priority:
-            self._readyQueue.append(pcb)
-            self._readyQueue.append(first)
+        if self._readyQueue:
+            first = self._readyQueue.pop()
+            if first.priority < pcb.priority:
+                self._readyQueue.append(pcb)
+                self._readyQueue.append(first)
+            else:
+                self._readyQueue.append(first)
+                self._readyQueue.append(pcb)
         else:
-            self._readyQueue.append(first)
             self._readyQueue.append(pcb)
+        
 
     def getNext(self):
-        (first, second) = (self._readyQueue.pop(), self._readyQueue.pop())
-        if first.prioirity < second.priority:
+        if self._readyQueue:
+            first = self._readyQueue.pop()
+        if self._readyQueue:
+            second = self._readyQueue.pop()
+        else:
+            return first
+
+        if first.priority < second.priority:
             self._readyQueue.append(second)
             return first
         else:
             self._readyQueue.append(first)
             return second
+
 
     def hasNext(self):
         return  self._readyQueue
@@ -383,7 +395,6 @@ class Kernel():
         self._loader = Loader()
 
 
-    
     @property
     def loader(self):
         return self._loader
@@ -401,8 +412,8 @@ class Kernel():
         return self._ioDeviceController
          
     ## emulates a "system call" for programs execution
-    def run(self, program):
-        newINT = IRQ(NEW_INTERRUPTION_TYPE, program)
+    def run(self, program, priority):
+        newINT = IRQ(NEW_INTERRUPTION_TYPE, (program, priority))
         #log.logger.info("Set New Int Handler")# ayuda visual
         HARDWARE.interruptVector.handle(newINT)
         log.logger.info("\n Executing program: {name}".format(name=program.name))
