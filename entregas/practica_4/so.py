@@ -296,6 +296,9 @@ class SchedulerFCFS():
     def __init__(self):
         self._readyQueue = []
 
+    @property
+    def readyQueue(self):
+        return self._readyQueue
 
     def add(self, nextPCB):
         self._readyQueue.append(nextPCB)
