@@ -143,10 +143,10 @@ class IoInInterruptionHandler(AbstractInterruptionHandler):
 class NewInterruptionHandler(AbstractInterruptionHandler):
 
     def execute(self, irq):
-        program = irq.parameters
-        log.logger.info("New loading {p}".format(p=program))
+        (program, priority) = irq.parameters
+        log.logger.info("New loading {} {}".format(program, priority))
         baseDir, limit = self.kernel.loader.load(program)
-        pcb = ProcessControlBlock(program, baseDir, limit)
+        pcb = ProcessControlBlock(program, baseDir, limit, priority)
         pcb.state = State.snew
         self.kernel.pcbTable.update(pcb) #add pcb
         # to ready or running
@@ -178,6 +178,7 @@ class Dispacher():
         HARDWARE.cpu.pc = pcb.pc
         HARDWARE.mmu.baseDir = pcb.baseDir
         HARDWARE.mmu.limit = pcb.limit
+
     def save(self, pcb):
         pcb.pc = HARDWARE.cpu.pc
         HARDWARE.cpu.pc = -1
@@ -230,13 +231,22 @@ class pid():
 # emulates a  pcb(creado por mi :S)
 class ProcessControlBlock():
 
-    def __init__(self, nameProgram, baseDir, limit):
+    def __init__(self, nameProgram, baseDir, limit, priority = 0):
         self._pid = pid.new()
         self._baseDir = baseDir
         self._limit = limit
         self._pc  = 0
         self._state =State.snew
         self._path = nameProgram
+        self._priority = priority 
+
+    @property
+    def priority(self):
+        return self._priority
+
+    @priority.setter
+    def priority(self, value):
+        self._priority = value
             
     @property
     def pid(self):
@@ -271,8 +281,8 @@ class ProcessControlBlock():
         self._state = state
 
     def __repr__(self):
-        return "PCB: pid:{:>3} baseDir:{:>3} pc:{:>3} limit:{:>3} state: {}\n".format(
-                self._pid, self._baseDir, self._pc, self._limit, self._state)
+        return "PCB: pid:{:>3} prio:{:>2} baseDir:{:>3} pc:{:>3} limit:{:>3} state: {}\n".format(
+                self._pid, self._priority, self._baseDir, self._pc, self._limit, self._state)
 
 # emulates the loader program( prueba)
 class Loader():
@@ -297,6 +307,54 @@ class Loader():
         self.memoryPos = index + 1
         return baseDir, progSize - 1 # limit = progSize - 1
 
+
+class AbstractScheduler():
+
+    def emptyReadyQueue(self):
+        return []
+
+class SchedulerNonPreemtive(AbstractScheduler):
+
+    def __init__(self):
+        self._readyQueue = self.emptyReadyQueue()
+
+    @property
+    def readyQueue(self):
+        return self._readyQueue
+
+    def add(self, pcb):
+        if self._readyQueue:
+            first = self._readyQueue.pop()
+            if first.priority < pcb.priority:
+                self._readyQueue.append(pcb)
+                self._readyQueue.append(first)
+            else:
+                self._readyQueue.append(first)
+                self._readyQueue.append(pcb)
+        else:
+            self._readyQueue.append(pcb)
+        
+
+    def getNext(self):
+        if self._readyQueue:
+            first = self._readyQueue.pop()
+        if self._readyQueue:
+            second = self._readyQueue.pop()
+        else:
+            return first
+
+        if first.priority < second.priority:
+            self._readyQueue.append(second)
+            return first
+        else:
+            self._readyQueue.append(first)
+            return second
+
+
+    def hasNext(self):
+        return  self._readyQueue
+
+  
 class SchedulerFCFS():
 
     def __init__(self):
@@ -306,8 +364,8 @@ class SchedulerFCFS():
     def readyQueue(self):
         return self._readyQueue
 
-    def add(self, nextPCB):
-        self._readyQueue.append(nextPCB)
+    def add(self, pcb):
+        self._readyQueue.append(pcb)
 
     def getNext(self):
         return self._readyQueue.pop(0)
@@ -363,7 +421,6 @@ class Kernel():
         self._loader = Loader()
 
 
-    
     @property
     def loader(self):
         return self._loader
@@ -381,8 +438,8 @@ class Kernel():
         return self._ioDeviceController
          
     ## emulates a "system call" for programs execution
-    def run(self, program):
-        newINT = IRQ(NEW_INTERRUPTION_TYPE, program)
+    def run(self, program, priority):
+        newINT = IRQ(NEW_INTERRUPTION_TYPE, (program, priority))
         #log.logger.info("Set New Int Handler")# ayuda visual
         HARDWARE.interruptVector.handle(newINT)
         log.logger.info("\n Executing program: {name}".format(name=program.name))
