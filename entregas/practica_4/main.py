@@ -13,8 +13,22 @@ if __name__ == '__main__':
 
     ## setup our hardware and set memory size to 25 "cells"
     HARDWARE.setup(35)
-    timer = HARDWARE.timer
-    timer.quantum = 2
+
+
+
+    #scheduler choose
+    sche = "RRB"
+    if sche == "RRB":
+        timer = HARDWARE.timer
+        timer.quantum = 2
+        scheduler = SchedulerRRB()
+    if sche == "FCFS":
+        scheduler = SchedulerFCFS()
+    if sche == "NP":
+        scheduler = SchedulerNonPreemtive()
+    #if sche == "P":
+    #    scheduler = SchedulerPreemtive()
+
 
     ## Switch on computer
     HARDWARE.switchOn()
