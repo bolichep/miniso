@@ -313,14 +313,15 @@ class AbstractScheduler():
     def emptyReadyQueue(self):
         return []
 
+    @property
+    def readyQueue(self):
+        return self._readyQueue
+
 class SchedulerNonPreemtive(AbstractScheduler):
 
     def __init__(self):
         self._readyQueue = self.emptyReadyQueue()
 
-    @property
-    def readyQueue(self):
-        return self._readyQueue
 
     def add(self, pcb):
         if self._readyQueue:
@@ -355,14 +356,10 @@ class SchedulerNonPreemtive(AbstractScheduler):
         return  self._readyQueue
 
   
-class SchedulerFCFS():
+class SchedulerFCFS(AbstractScheduler):
 
     def __init__(self):
         self._readyQueue = []
-
-    @property
-    def readyQueue(self):
-        return self._readyQueue
 
     def add(self, pcb):
         self._readyQueue.append(pcb)
@@ -373,7 +370,7 @@ class SchedulerFCFS():
     def hasNext(self):
         return  self._readyQueue
 
-class SchedulerRRB():
+class SchedulerRRB(AbstractScheduler):
 
     def __init__(self):
         self._readyQueue = []
