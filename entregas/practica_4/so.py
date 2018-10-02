@@ -167,7 +167,8 @@ class TimeoutInterruptionHandler(AbstractInterruptionHandler):
 
     def execute(self, irq):
         HARDWARE.timer.reset()
-        self.contextSwitchFromRunningTo(State.sready)
+        if self.kernel.pcbTable.runningPCB:
+            self.contextSwitchFromRunningTo(State.sready)
 
 
 #emul dispacher
