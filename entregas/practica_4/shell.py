@@ -55,7 +55,7 @@ class shell():
                     print(_code)
 
                 if comandos[0] == 'run':
-                    kernel.run(Program(_name, [_code.split(",")]))
+                    kernel.run(Program(_name, [_code.split(",")]), 3 if len(comandos) < 2 else comandos[1])
 
                 if comandos[0] == 'help':
                     print(shell.help_c)
