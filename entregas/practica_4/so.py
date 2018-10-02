@@ -108,8 +108,6 @@ class AbstractInterruptionHandler():
             self.kernel.pcbTable.runningPCB = nextPCB
             self.kernel.pcbTable.update(nextPCB)
             self.kernel.dispacher.load(nextPCB)
-        if toState == State.sready:
-            self.kernel.scheduler.add(prevPCB)
         return prevPCB
 
     def contextSwitchToReadyOrRunning(self, nextPCB):
@@ -167,8 +165,9 @@ class TimeoutInterruptionHandler(AbstractInterruptionHandler):
 
     def execute(self, irq):
         HARDWARE.timer.reset()
-        if self.kernel.pcbTable.runningPCB:
-            self.contextSwitchFromRunningTo(State.sready)
+        if self.kernel.scheduler.hasNext():
+            pcb = self.kernel.scheduler.getNext()
+            self.contextSwitchToReadyOrRunning(pcb)
 
 
 #emul dispacher
