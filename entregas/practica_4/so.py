@@ -108,6 +108,8 @@ class AbstractInterruptionHandler():
             self.kernel.pcbTable.runningPCB = nextPCB
             self.kernel.pcbTable.update(nextPCB)
             self.kernel.dispacher.load(nextPCB)
+        if toState == State.sready:
+            self.kernel.scheduler.add(prevPCB)
         return prevPCB
 
     def contextSwitchToReadyOrRunning(self, nextPCB):
@@ -121,10 +123,6 @@ class AbstractInterruptionHandler():
         self.kernel.pcbTable.update(nextPCB)
 
 
-
-
-
-
 class KillInterruptionHandler(AbstractInterruptionHandler):
 
     def execute(self, irq):
@@ -135,6 +133,7 @@ class KillInterruptionHandler(AbstractInterruptionHandler):
 class IoInInterruptionHandler(AbstractInterruptionHandler):
 
     def execute(self, irq):
+        HARDWARE.timer.reset()
         operation = irq.parameters
         pcb = self.contextSwitchFromRunningTo(State.swaiting)
         log.logger.info(self.kernel.ioDeviceController)
@@ -163,6 +162,12 @@ class IoOutInterruptionHandler(AbstractInterruptionHandler):
         # to ready or running
         self.contextSwitchToReadyOrRunning(pcb)
         log.logger.info(self.kernel.ioDeviceController)
+
+class TimeoutInterruptionHandler(AbstractInterruptionHandler):
+
+    def execute(self, irq):
+        HARDWARE.timer.reset()
+        self.contextSwitchFromRunningTo(State.sready)
 
 
 #emul dispacher
@@ -309,6 +314,22 @@ class SchedulerFCFS():
     def hasNext(self):
         return  self._readyQueue
 
+class SchedulerRRB():
+
+    def __init__(self):
+        self._readyQueue = []
+        self._isPrioritaty = False
+
+    def add(self, nextPCB):
+        self._readyQueue.append(nextPCB)
+
+    def getNext(self):
+        return self._readyQueue.pop(0)
+
+    def hasNext(self):
+        return self._readyQueue
+
+
   
 
 # emulates the core of an Operative System
@@ -327,6 +348,9 @@ class Kernel():
 
         ioOutHandler = IoOutInterruptionHandler(self)
         HARDWARE.interruptVector.register(IO_OUT_INTERRUPTION_TYPE, ioOutHandler)
+
+        timeoutHandler = TimeoutInterruptionHandler(self)
+        HARDWARE.interruptVector.register(TIMEOUT_INTERRUPTION_TYPE, timeoutHandler)
 
         ## controls the Hardware's I/O Device
         self._ioDeviceController = IoDeviceController(HARDWARE.ioDevice)

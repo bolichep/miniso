@@ -13,13 +13,15 @@ if __name__ == '__main__':
 
     ## setup our hardware and set memory size to 25 "cells"
     HARDWARE.setup(35)
+    timer = HARDWARE.timer
+    timer.quantum = 2
 
     ## Switch on computer
     HARDWARE.switchOn()
 
     ## new create the Operative System Kernel
     # "booteamos" el sistema operativo
-    scheduler = SchedulerFCFS()
+    scheduler = SchedulerRRB()
 
     kernel = Kernel(scheduler)
 
