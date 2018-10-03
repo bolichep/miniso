@@ -187,7 +187,7 @@ class IoOutInterruptionHandler(AbstractInterruptionHandler):
     def execute(self, irq):
         pcb = self.kernel.ioDeviceController.getFinishedPCB()
         pcb.state = State.sready
-        #self.kernel.pcbTable.update(pcb) #update pcb
+        self.kernel.pcbTable.update(pcb) #update pcb
         # to ready or running
         self.contextSwitchToReadyOrRunning(pcb)
         log.logger.info(self.kernel.ioDeviceController)
