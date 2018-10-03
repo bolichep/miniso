@@ -35,8 +35,6 @@ if __name__ == '__main__':
 
     ## new create the Operative System Kernel
     # "booteamos" el sistema operativo
-    scheduler = SchedulerRRB()
-
     kernel = Kernel(scheduler)
 
     # Ahora vamos a intentar ejecutar 3 programas a la vez
