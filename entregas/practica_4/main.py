@@ -17,7 +17,7 @@ if __name__ == '__main__':
 
 
     #scheduler choose
-    sche = "RRB"
+    sche = "NP"
     if sche == "RRB":
         timer = HARDWARE.timer
         timer.quantum = 2

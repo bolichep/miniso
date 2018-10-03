@@ -316,39 +316,26 @@ class AbstractScheduler():
     def readyQueue(self):
         return self._readyQueue
 
+
 class SchedulerNonPreemtive(AbstractScheduler):
 
     def __init__(self):
         self._readyQueue = self.emptyReadyQueue()
 
 
+    # uso el readyqueue al revés
+    # a mojorar el orden... ya que sorted seria O(N log N)
     def add(self, pcb):
-        if self._readyQueue:
-            first = self._readyQueue.pop()
-            if first.priority < pcb.priority:
-                self._readyQueue.append(pcb)
-                self._readyQueue.append(first)
-            else:
-                self._readyQueue.append(first)
-                self._readyQueue.append(pcb)
-        else:
-            self._readyQueue.append(pcb)
-        
+        self._readyQueue.append(pcb)
+        # sorted seria  O(N log N), buscar mejor opcion
+        self._readyQueue = sorted ( self._readyQueue, key = lambda x: 0 - x.priority)
+        print(self._readyQueue)
 
+
+    # lo uso al revés ya que pop(0) es O(n) y pop() es O(1)
+    # prec: readyQueue no esta vacia
     def getNext(self):
-        if self._readyQueue:
-            first = self._readyQueue.pop()
-        if self._readyQueue:
-            second = self._readyQueue.pop()
-        else:
-            return first
-
-        if first.priority < second.priority:
-            self._readyQueue.append(second)
-            return first
-        else:
-            self._readyQueue.append(first)
-            return second
+        return self._readyQueue.pop()
 
 
     def hasNext(self):
@@ -358,13 +345,13 @@ class SchedulerNonPreemtive(AbstractScheduler):
 class SchedulerFCFS(AbstractScheduler):
 
     def __init__(self):
-        self._readyQueue = []
+        self._readyQueue = self.emptyReadyQueue()
 
     def add(self, pcb):
         self._readyQueue.append(pcb)
 
     def getNext(self):
-        return self._readyQueue.pop(0)
+        return self._readyQueue.pop(0) #.pop(0) is O(n)
 
     def hasNext(self):
         return  self._readyQueue
