@@ -106,6 +106,7 @@ class AbstractInterruptionHandler():
             nextPCB = self.kernel.scheduler.getNext()
             nextPCB.state = State.srunning
             self.kernel.pcbTable.runningPCB = nextPCB
+            self.kernel.pcbTable.update(prevPCB)
             self.kernel.pcbTable.update(nextPCB)
             self.kernel.dispacher.load(nextPCB)
         return prevPCB
@@ -117,8 +118,23 @@ class AbstractInterruptionHandler():
             self.kernel.pcbTable.runningPCB = nextPCB
         else:
             nextPCB.state = State.sready
-            self.kernel.scheduler.add(nextPCB)
+            prevPCB = self.kernel.pcbTable.runningPCB
+            if self.kernel.scheduler.isPreemtive(prevPCB, nextPCB) :
+                self.contextSwapPreemtive(nextPCB)
+                nextPCB.state = State.srunning
+            else : 
+                self.kernel.scheduler.add(nextPCB)
         self.kernel.pcbTable.update(nextPCB)
+
+    def contextSwapPreemtive(self, nextPCB):
+        prevPCB = self.kernel.pcbTable.runningPCB
+        prevPCB.State = State.sready
+        self.kernel.dispacher.save(prevPCB)
+        self.kernel.pcbTable.runningPCB = nextPCB
+        self.kernel.dispacher.load(nextPCB)
+        self.kernel.scheduler.add(prevPCB)
+        self.kernel.pcbTable.update(prevPCB)
+
 
 
 class KillInterruptionHandler(AbstractInterruptionHandler):
@@ -126,17 +142,10 @@ class KillInterruptionHandler(AbstractInterruptionHandler):
     def execute(self, irq):
         log.logger.info(" Program Finished ")
         self.contextSwitchFromRunningTo(State.sterminated)
+        print("runningPCB: ", self.kernel.pcbTable.runningPCB,
+                                end="")
+        print(self.kernel.pcbTable)
 
-
-class IoInInterruptionHandler(AbstractInterruptionHandler):
-
-    def execute(self, irq):
-        HARDWARE.timer.reset()
-        operation = irq.parameters
-        pcb = self.contextSwitchFromRunningTo(State.swaiting)
-        log.logger.info(self.kernel.ioDeviceController)
-        self.kernel.ioDeviceController.runOperation(pcb, operation)
-        
 
 class NewInterruptionHandler(AbstractInterruptionHandler):
 
@@ -150,16 +159,44 @@ class NewInterruptionHandler(AbstractInterruptionHandler):
         # to ready or running
         self.contextSwitchToReadyOrRunning(pcb)
 
+        #ayuda visual
+        print("runningPCB: ", self.kernel.pcbTable.runningPCB,
+                                end="")
+        print(self.kernel.pcbTable)
+        
+        
+
+class IoInInterruptionHandler(AbstractInterruptionHandler):
+
+    def execute(self, irq):
+        HARDWARE.timer.reset()
+        operation = irq.parameters
+        pcb = self.contextSwitchFromRunningTo(State.swaiting)
+        log.logger.info(self.kernel.ioDeviceController)
+        self.kernel.ioDeviceController.runOperation(pcb, operation)
+
+        #ayuda visual
+        print("runningPCB: ", self.kernel.pcbTable.runningPCB,
+                                end="")
+        print(self.kernel.pcbTable)
+        
+
 
 class IoOutInterruptionHandler(AbstractInterruptionHandler):
 
     def execute(self, irq):
         pcb = self.kernel.ioDeviceController.getFinishedPCB()
         pcb.state = State.sready
-        self.kernel.pcbTable.update(pcb) #update pcb
+        #self.kernel.pcbTable.update(pcb) #update pcb
         # to ready or running
         self.contextSwitchToReadyOrRunning(pcb)
         log.logger.info(self.kernel.ioDeviceController)
+
+        #ayuda visual
+        print("runningPCB: ", self.kernel.pcbTable.runningPCB,
+                                end="")
+        print(self.kernel.pcbTable)
+        
 
 class TimeoutInterruptionHandler(AbstractInterruptionHandler):
 
@@ -341,6 +378,30 @@ class SchedulerNonPreemtive(AbstractScheduler):
     def hasNext(self):
         return  self._readyQueue
 
+    def isPreemtive(self, pcb1, pcb2):
+        return False        
+
+class SchedulerPreemtive(AbstractScheduler):
+
+    def __init__(self):
+        self._readyQueue = self.emptyReadyQueue()
+
+    def add(self, pcb):
+        self._readyQueue.append(pcb)
+        # sorted seria  O(N log N), buscar mejor opcion
+        self._readyQueue = sorted ( self._readyQueue, key = lambda x: 0 - x.priority)
+        print(self._readyQueue)
+
+    def getNext(self):
+        return self._readyQueue.pop()
+
+
+    def hasNext(self):
+        return  self._readyQueue
+
+    def isPreemtive(self, pcb1, pcb2):
+        return pcb1.priority > pcb2.priority
+
   
 class SchedulerFCFS(AbstractScheduler):
 
@@ -356,6 +417,9 @@ class SchedulerFCFS(AbstractScheduler):
     def hasNext(self):
         return  self._readyQueue
 
+    def isPreemtive(self, pcb1, pcb2):
+        return False
+
 class SchedulerRRB(AbstractScheduler):
 
     def __init__(self):
@@ -370,6 +434,10 @@ class SchedulerRRB(AbstractScheduler):
 
     def hasNext(self):
         return self._readyQueue
+
+    def isPreemtive(self, pcb1, pcb2):
+        return False
+
 
 
   

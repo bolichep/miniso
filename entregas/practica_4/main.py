@@ -17,7 +17,7 @@ if __name__ == '__main__':
 
 
     #scheduler choose
-    sche = "NP"
+    sche = "P"
     if sche == "RRB":
         timer = HARDWARE.timer
         timer.quantum = 2
@@ -26,8 +26,8 @@ if __name__ == '__main__':
         scheduler = SchedulerFCFS()
     if sche == "NP":
         scheduler = SchedulerNonPreemtive()
-    #if sche == "P":
-    #    scheduler = SchedulerPreemtive()
+    if sche == "P":
+        scheduler = SchedulerPreemtive()
 
 
     ## Switch on computer
@@ -39,9 +39,9 @@ if __name__ == '__main__':
 
     # Ahora vamos a intentar ejecutar 3 programas a la vez
     ##################
-    prg1 = Program("prg1.exe", [ASM.CPU(2), ASM.IO(), ASM.CPU(3), ASM.IO(), ASM.CPU(2)])
+    prg1 = Program("prg1.exe", [ASM.CPU(2), ASM.CPU(2)]) #  ASM.IO(), ASM.CPU(3), ASM.IO(),
     prg2 = Program("prg2.exe", [ASM.CPU(7)])
-    prg3 = Program("prg3.exe", [ASM.CPU(4), ASM.IO(), ASM.CPU(1)])
+    prg3 = Program("prg3.exe", [ASM.CPU(4),  ASM.CPU(1)]) # ASM.IO(),
 
     # execute all programs "concurrently"
     kernel.run(prg1,1)
