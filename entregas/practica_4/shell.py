@@ -57,6 +57,9 @@ class shell():
                 if comandos[0] == 'run':
                     kernel.run(Program(_name, [_code.split(",")]), 3 if len(comandos) < 2 else comandos[1])
 
+                if comandos[0] == 'loaderreset':
+                    kernel.loader.memoryPos = 0
+
                 if comandos[0] == 'help':
                     print(shell.help_c)
 
@@ -77,6 +80,9 @@ class shell():
                 if comandos[0] == 'quit':
                     HARDWARE.switchOff()
                     _consolaCorriendo = False
+
+                if comandos[0] == 'reset':
+                    print(HARDWARE.setup(35))
 
                 if comandos[0] == 'state':
                     print(HARDWARE.cpu, HARDWARE.mmu)
@@ -107,4 +113,7 @@ class shell():
 
             except KeyboardInterrupt:
                 print("\nTo exit, type: quit<Enter>\nor help to see commands")
+                pass
+            except (IndexError, AttributeError):
+                print("IndexError or AttributeError")
                 pass
