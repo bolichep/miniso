@@ -83,6 +83,7 @@ class IoDeviceController():
 
 ## emulates the  Interruptions Handlers
 class AbstractInterruptionHandler():
+
     def __init__(self, kernel):
         self._kernel = kernel
 
@@ -111,11 +112,23 @@ class AbstractInterruptionHandler():
         return prevPCB
 
     def contextSwitchToReadyOrRunning(self, nextPCB):
-        if self.kernel.pcbTable.runningPCB == None:
+        prevPCB = self.kernel.pcbTable.runningPCB
+        if prevPCB == None:
             self.kernel.dispacher.load(nextPCB)
             nextPCB.state = State.srunning
             self.kernel.pcbTable.runningPCB = nextPCB
         else:
+            if self.kernel.scheduler.mustExpropiate(prevPCB, nextPCB):
+                prevPCB.state = State.sready
+                self.kernel.dispacher.save(prevPCB)
+                self.kernel.scheduler.add(prevPCB)
+                nextPCB.state = State.srunning
+                self.kernel.pcbTable.runningPCB = nextPCB
+                self.kernel.pcbTable.update(nextPCB)
+                self.kernel.dispacher.load(nextPCB)
+                # Now nextPCB is the previous running PCB
+                nextPCB = prevPCB 
+                
             nextPCB.state = State.sready
             self.kernel.scheduler.add(nextPCB)
         self.kernel.pcbTable.update(nextPCB)
@@ -309,6 +322,9 @@ class Loader():
 
 class AbstractScheduler():
 
+    def __init__(self):
+        self._readyQueue = self.emptyReadyQueue()
+
     def emptyReadyQueue(self):
         return []
 
@@ -316,12 +332,11 @@ class AbstractScheduler():
     def readyQueue(self):
         return self._readyQueue
 
+    def mustExpropiate(self, pcbInCPU, pcbToAdd):
+        return False
+
 
 class SchedulerNonPreemtive(AbstractScheduler):
-
-    def __init__(self):
-        self._readyQueue = self.emptyReadyQueue()
-
 
     # uso el readyqueue al revés
     # a mojorar el orden... ya que sorted seria O(N log N)
@@ -341,11 +356,14 @@ class SchedulerNonPreemtive(AbstractScheduler):
     def hasNext(self):
         return  self._readyQueue
 
+
+class SchedulerPreemtive(SchedulerNonPreemtive):
+
+    def mustExpropiate(self, pcbInCPU, pcbToAdd):
+        return pcbInCPU.priority > pcbToAdd.priority
+
   
 class SchedulerFCFS(AbstractScheduler):
-
-    def __init__(self):
-        self._readyQueue = self.emptyReadyQueue()
 
     def add(self, pcb):
         self._readyQueue.append(pcb)
@@ -357,10 +375,6 @@ class SchedulerFCFS(AbstractScheduler):
         return  self._readyQueue
 
 class SchedulerRRB(AbstractScheduler):
-
-    def __init__(self):
-        self._readyQueue = []
-        self._isPrioritaty = False
 
     def add(self, nextPCB):
         self._readyQueue.append(nextPCB)
