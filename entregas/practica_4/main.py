@@ -17,7 +17,7 @@ if __name__ == '__main__':
 
 
     #scheduler choose
-    sche = "NP"
+    sche = "P"
     if sche == "RRB":
         timer = HARDWARE.timer
         timer.quantum = 2
@@ -26,8 +26,8 @@ if __name__ == '__main__':
         scheduler = SchedulerFCFS()
     if sche == "NP":
         scheduler = SchedulerNonPreemtive()
-    #if sche == "P":
-    #    scheduler = SchedulerPreemtive()
+    if sche == "P":
+        scheduler = SchedulerPreemtive()
 
 
     ## Switch on computer
