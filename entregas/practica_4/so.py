@@ -129,7 +129,6 @@ class AbstractInterruptionHandler():
     def contextSwapPreemtive(self, nextPCB):
         prevPCB = self.kernel.pcbTable.runningPCB
         prevPCB.State = State.sready
-        self.kernel.dispacher.save(prevPCB)
         self.kernel.pcbTable.runningPCB = nextPCB
         self.kernel.dispacher.load(nextPCB)
         self.kernel.scheduler.add(prevPCB)
@@ -142,9 +141,6 @@ class KillInterruptionHandler(AbstractInterruptionHandler):
     def execute(self, irq):
         log.logger.info(" Program Finished ")
         self.contextSwitchFromRunningTo(State.sterminated)
-        print("runningPCB: ", self.kernel.pcbTable.runningPCB,
-                                end="")
-        print(self.kernel.pcbTable)
 
 
 class NewInterruptionHandler(AbstractInterruptionHandler):
@@ -160,9 +156,6 @@ class NewInterruptionHandler(AbstractInterruptionHandler):
         self.contextSwitchToReadyOrRunning(pcb)
 
         #ayuda visual
-        print("runningPCB: ", self.kernel.pcbTable.runningPCB,
-                                end="")
-        print(self.kernel.pcbTable)
         
         
 
@@ -176,9 +169,6 @@ class IoInInterruptionHandler(AbstractInterruptionHandler):
         self.kernel.ioDeviceController.runOperation(pcb, operation)
 
         #ayuda visual
-        print("runningPCB: ", self.kernel.pcbTable.runningPCB,
-                                end="")
-        print(self.kernel.pcbTable)
         
 
 
@@ -193,9 +183,6 @@ class IoOutInterruptionHandler(AbstractInterruptionHandler):
         log.logger.info(self.kernel.ioDeviceController)
 
         #ayuda visual
-        print("runningPCB: ", self.kernel.pcbTable.runningPCB,
-                                end="")
-        print(self.kernel.pcbTable)
         
 
 class TimeoutInterruptionHandler(AbstractInterruptionHandler):
@@ -366,7 +353,6 @@ class SchedulerNonPreemtive(AbstractScheduler):
         self._readyQueue.append(pcb)
         # sorted seria  O(N log N), buscar mejor opcion
         self._readyQueue = sorted ( self._readyQueue, key = lambda x: 0 - x.priority)
-        print(self._readyQueue)
 
 
     # lo uso al revés ya que pop(0) es O(n) y pop() es O(1)
@@ -390,7 +376,6 @@ class SchedulerPreemtive(AbstractScheduler):
         self._readyQueue.append(pcb)
         # sorted seria  O(N log N), buscar mejor opcion
         self._readyQueue = sorted ( self._readyQueue, key = lambda x: 0 - x.priority)
-        print(self._readyQueue)
 
     def getNext(self):
         return self._readyQueue.pop()
