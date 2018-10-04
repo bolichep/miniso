@@ -106,7 +106,6 @@ class AbstractInterruptionHandler():
             nextPCB = self.kernel.scheduler.getNext()
             nextPCB.state = State.srunning
             self.kernel.pcbTable.runningPCB = nextPCB
-            self.kernel.pcbTable.update(prevPCB)
             self.kernel.pcbTable.update(nextPCB)
             self.kernel.dispacher.load(nextPCB)
         return prevPCB
@@ -340,51 +339,54 @@ class AbstractScheduler():
     def readyQueue(self):
         return self._readyQueue
 
-
 class SchedulerNonPreemtive(AbstractScheduler):
 
     def __init__(self):
-        self._readyQueue = self.emptyReadyQueue()
+        self._cantE = 0
+        self._readyQueue0 = self.emptyReadyQueue()
+        self._readyQueue1 = self.emptyReadyQueue()
+        self._readyQueue2 = self.emptyReadyQueue()
+        self._readyQueue3 = self.emptyReadyQueue()
+        self._readyQueue4 = self.emptyReadyQueue()
 
-
-    # uso el readyqueue al revés
-    # a mojorar el orden... ya que sorted seria O(N log N)
     def add(self, pcb):
-        self._readyQueue.append(pcb)
+        #self._readyQueue.append(pcb)
         # sorted seria  O(N log N), buscar mejor opcion
-        self._readyQueue = sorted ( self._readyQueue, key = lambda x: 0 - x.priority)
+        #self._readyQueue = sorted ( self._readyQueue,  key = lambda x: 0 - x.priority)
+        self._cantE += 1
+        if pcb.priority == 0 :
+            self._readyQueue0.append(pcb)
+        elif pcb.priority == 1 :
+            self._readyQueue1.append(pcb)
+        elif pcb.priority == 2 :
+            self._readyQueue2.append(pcb)
+        elif pcb.priority == 3 :
+            self._readyQueue3.append(pcb)
+        elif pcb.priority == 4 :
+            self._readyQueue4.append(pcb)
 
-
-    # lo uso al revés ya que pop(0) es O(n) y pop() es O(1)
-    # prec: readyQueue no esta vacia
     def getNext(self):
-        return self._readyQueue.pop()
-
+        self._cantE -= 1
+        if self._readyQueue0 :
+            return self._readyQueue0.pop()
+        if self._readyQueue1 : 
+            return self._readyQueue1.pop()
+        if self._readyQueue2 :
+            return self._readyQueue2.pop()
+        if self._readyQueue3 :
+            return self._readyQueue3.pop()
+        if self._readyQueue4 :
+            return self._readyQueue4.pop()
 
     def hasNext(self):
-        return  self._readyQueue
+        return self._cantE > 0
 
     def isPreemtive(self, pcb1, pcb2):
         return False        
 
-class SchedulerPreemtive(AbstractScheduler):
+class SchedulerPreemtive(SchedulerNonPreemtive):
 
-    def __init__(self):
-        self._readyQueue = self.emptyReadyQueue()
-
-    def add(self, pcb):
-        self._readyQueue.append(pcb)
-        # sorted seria  O(N log N), buscar mejor opcion
-        self._readyQueue = sorted ( self._readyQueue, key = lambda x: 0 - x.priority)
-
-    def getNext(self):
-        return self._readyQueue.pop()
-
-
-    def hasNext(self):
-        return  self._readyQueue
-
-    def isPreemtive(self, pcb1, pcb2):
+    def  __isPreemtive__ (self, pcb1, pcb2):
         return pcb1.priority > pcb2.priority
 
   
