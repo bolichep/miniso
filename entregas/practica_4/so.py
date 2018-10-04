@@ -112,26 +112,22 @@ class AbstractInterruptionHandler():
         return prevPCB
 
     def contextSwitchToReadyOrRunning(self, nextPCB):
-        prevPCB = self.kernel.pcbTable.runningPCB
-        if prevPCB == None:
+        runningPCB = self.kernel.pcbTable.runningPCB
+        if runningPCB == None:
             self.kernel.dispacher.load(nextPCB)
             nextPCB.state = State.srunning
             self.kernel.pcbTable.runningPCB = nextPCB
         else:
-            if self.kernel.scheduler.mustExpropiate(prevPCB, nextPCB):
-                prevPCB.state = State.sready
-                self.kernel.dispacher.save(prevPCB)
-                self.kernel.scheduler.add(prevPCB)
+            nextPCB.state = State.sready
+            self.kernel.scheduler.add(nextPCB)
+            if self.kernel.scheduler.mustExpropiate(runningPCB, nextPCB):
+                self.contextSwitchFromRunningTo(State.sready)
                 nextPCB.state = State.srunning
                 self.kernel.pcbTable.runningPCB = nextPCB
                 self.kernel.pcbTable.update(nextPCB)
                 self.kernel.dispacher.load(nextPCB)
-                # Now nextPCB is the previous running PCB
-                nextPCB = prevPCB 
-                
-            nextPCB.state = State.sready
-            self.kernel.scheduler.add(nextPCB)
         self.kernel.pcbTable.update(nextPCB)
+                
 
 
 class KillInterruptionHandler(AbstractInterruptionHandler):

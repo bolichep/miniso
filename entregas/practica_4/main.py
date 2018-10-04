@@ -41,7 +41,7 @@ if __name__ == '__main__':
     ##################
     prg1 = Program("prg1.exe", [ASM.CPU(2)])
     prg2 = Program("prg2.exe", [ASM.CPU(2)])
-    prg3 = Program("prg3.exe", [ASM.IO()])
+    prg3 = Program("prg3.exe", [ASM.CPU(10)])
 
     # execute all programs "concurrently"
     kernel.run(prg1,1)
