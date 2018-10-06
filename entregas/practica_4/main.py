@@ -2,6 +2,7 @@ from hardware import *
 from so import *
 import log
 from shell import *
+import sys
 
 
 ##
@@ -14,20 +15,29 @@ if __name__ == '__main__':
     ## setup our hardware and set memory size to 25 "cells"
     HARDWARE.setup(35)
 
-
+    SCHEDULER_FCFS = 'FCFS'
+    SCHEDULER_RR = 'RR'
+    SCHEDULER_NP = 'NP'
+    SCHEDULER_P = 'P'
 
     #scheduler choose
-    sche = "NP"
-    if sche == "RRB":
+    sche = SCHEDULER_FCFS #<<<<<<< choose here or at cli
+
+    if len(sys.argv) > 1:
+        sche = sys.argv[1]
+
+    if sche == SCHEDULER_RR:
         timer = HARDWARE.timer
         timer.quantum = 2
         scheduler = SchedulerRRB()
-    if sche == "FCFS":
+    if sche == SCHEDULER_FCFS:
         scheduler = SchedulerFCFS()
-    if sche == "NP":
+    if sche == SCHEDULER_NP:
         scheduler = SchedulerNonPreemtive()
-    if sche == "P":
+    if sche == SCHEDULER_P:
         scheduler = SchedulerPreemtive()
+
+    print("Runnnig", scheduler)
 
 
     ## Switch on computer
