@@ -157,8 +157,10 @@ class AbstractInterruptionHandler():
 
     def to_running(self, pcb):
         k = self.kernel
+        print("To RUNNING", pcb)
         k.pcbTable.update(pcb, State.srunning)
         k.dispacher.load(pcb)
+        print("To RUNNING", pcb)
         
 
     def expropiate(self, pcb):
@@ -194,8 +196,12 @@ class NewInterruptionHandler(AbstractInterruptionHandler):
             print("TO running" * 3)
             self.new_to_running(pcb)
         else:
-            print("TO READY" * 3)
-            self.new_to_ready(pcb)
+            if self.kernel.scheduler.isPreemtive(self.kernel.pcbTable.runningPCB, pcb):
+                print("EXPROPIATE" * 3)
+                self.expropiate(pcb)
+            else:
+                print("TO READY" * 3)
+                self.new_to_ready(pcb)
 
 
 class IoInInterruptionHandler(AbstractInterruptionHandler):
@@ -222,7 +228,10 @@ class IoOutInterruptionHandler(AbstractInterruptionHandler):
         if self.kernel.pcbTable.runningPCB == None:
             self.waiting_to_running(pcb)
         else:
-            self.waiting_to_ready(pcb)
+            if self.kernel.scheduler.isPreemtive(self.kernel.pcbTable.runningPCB, pcb):
+                self.expropiate(pcb)
+            else:
+                self.waiting_to_ready(pcb)
         log.logger.info(self.kernel.ioDeviceController)
 
 
@@ -443,7 +452,7 @@ class SchedulerPreemtive(SchedulerNonPreemtive):
     #  el nro de prioridad del pcb entrante es menor(MAYOR orden) 
     #  al nro de prioridad del pcb corriendo
     def isPreemtive (self, pcbRunning, pcbNew):
-        return pcbNew < pcbRunning
+        return pcbNew.priority < pcbRunning.priority
 
   
 class SchedulerFCFS(AbstractScheduler):
