@@ -143,12 +143,17 @@ class AbstractInterruptionHandler():
         k.pcbTable.update(pcb, State.sready)
         print("WAITING TO READY", pcb)
         k.scheduler.add(pcb)
+        print("SCHEDULER", k.scheduler)
 
     def running_to_ready(self): #9
         k = self.kernel
         pcb = k.pcbTable.runningPCB
+        print("RUNNING TO READY", pcb)
         k.dispacher.save(pcb)
         k.pcbTable.update(pcb, State.sready)
+        print("RUNNING TO READY", pcb)
+        k.scheduler.add(pcb)
+        print("SCHEDULER", k.scheduler)
 
     def to_running(self, pcb):
         k = self.kernel
@@ -228,7 +233,7 @@ class TimeoutInterruptionHandler(AbstractInterruptionHandler):
         if self.kernel.scheduler.hasNext():
             pcb = self.kernel.scheduler.getNext()
             #self.contextSwitchToReadyOrRunning(pcb)
-            expropiate(pcb)
+            self.expropiate(pcb)
 
 
 #emul dispacher
