@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from hardware import *
+from switch import *
 import log
 from enum import Enum
 
@@ -90,48 +91,77 @@ class AbstractInterruptionHandler():
     def kernel(self):
         return self._kernel
 
+    def to_new(self,pcb):
+        k = self.kernel
+        k.pcbTable.update(pcb, State.snew)
+
+    def new_to_running(self, pcb): #1
+        k = self.kernel
+        k.pcbTable.update(pcb, State.srunning)
+        k.dispacher.load(pcb)
+
+    def new_to_ready(self, pcb): #3
+        k = self.kernel
+        k.pcbTable.update(pcb, State.sready)
+        k.scheduler.add(pcb)
+
+    def running_to_waiting(self): #4
+        k = self.kernel
+        pcb = k.pcbTable.runningPCB
+        print("RUNNING TO WAITING", pcb)
+        k.dispacher.save(pcb)
+        k.pcbTable.update(pcb, State.swaiting)
+        print("RUNNING TO WAITING", pcb)
+        return pcb
+
+    def ready_to_running(self): #5
+        k = self.kernel
+        pcb = k.scheduler.getNext()
+        print("READY TO RUNNING", pcb)
+        k.pcbTable.update(pcb, State.srunning)
+        k.dispacher.load(pcb)
+        print("READY TO RUNNING", pcb)
+
+    def running_to_terminated(self): #6
+        k = self.kernel
+        pcb = k.pcbTable.runningPCB
+        print("RUNNING TO TERMINATED", pcb)
+        k.dispacher.save(pcb)
+        k.pcbTable.update(pcb, State.sterminated)
+        print("RUNNING TO TERMINATED", pcb)
+
+    def waiting_to_running(self, pcb): #7
+        k = self.kernel
+        print("WAITING TO RUNNING", pcb)
+        k.pcbTable.update(pcb, State.srunning)
+        k.dispacher.load(pcb)
+        print("WAITING TO RUNNING", pcb)
+
+    def waiting_to_ready(self, pcb): #8
+        k = self.kernel
+        print("WAITING TO READY", pcb)
+        k.pcbTable.update(pcb, State.sready)
+        print("WAITING TO READY", pcb)
+        k.scheduler.add(pcb)
+
+    def running_to_ready(self): #9
+        k = self.kernel
+        pcb = k.pcbTable.runningPCB
+        k.dispacher.save(pcb)
+        k.pcbTable.update(pcb, State.sready)
+
+    def to_running(self, pcb):
+        k = self.kernel
+        k.pcbTable.update(pcb, State.srunning)
+        k.dispacher.load(pcb)
+        
+
+    def expropiate(self, pcb):
+        self.running_to_ready()
+        self.to_running(pcb)
+
     def execute(self, irq):
         log.logger.error("-- EXECUTE MUST BE OVERRIDEN in class {classname}".format(classname=self.__class__.__name__))
-
-    def contextSwitchFromRunningTo(self, toState):
-        prevPCB = self.kernel.pcbTable.runningPCB
-        prevPCB.state = toState
-        self.kernel.dispacher.save(prevPCB)
-        self.kernel.pcbTable.runningPCB = None
-        if toState == State.sterminated:
-            self.kernel.pcbTable.remove(prevPCB.pid)
-        else:
-            self.kernel.pcbTable.update(prevPCB)
-        if self.kernel.scheduler.hasNext():
-            nextPCB = self.kernel.scheduler.getNext()
-            nextPCB.state = State.srunning
-            self.kernel.pcbTable.runningPCB = nextPCB
-            self.kernel.pcbTable.update(nextPCB)
-            self.kernel.dispacher.load(nextPCB)
-        return prevPCB
-
-    def contextSwitchToReadyOrRunning(self, nextPCB):
-        if self.kernel.pcbTable.runningPCB == None:
-            self.kernel.dispacher.load(nextPCB)
-            nextPCB.state = State.srunning
-            self.kernel.pcbTable.runningPCB = nextPCB
-        else:
-            nextPCB.state = State.sready
-            prevPCB = self.kernel.pcbTable.runningPCB
-            if self.kernel.scheduler.isPreemtive(prevPCB, nextPCB) :
-                self.contextSwapPreemtive(nextPCB)
-                nextPCB.state = State.srunning
-            else : 
-                self.kernel.scheduler.add(nextPCB)
-        self.kernel.pcbTable.update(nextPCB)
-
-    def contextSwapPreemtive(self, nextPCB):
-        prevPCB = self.kernel.pcbTable.runningPCB
-        prevPCB.State = State.sready
-        self.kernel.pcbTable.runningPCB = nextPCB
-        self.kernel.dispacher.load(nextPCB)
-        self.kernel.scheduler.add(prevPCB)
-        self.kernel.pcbTable.update(prevPCB)
 
 
 
@@ -139,7 +169,10 @@ class KillInterruptionHandler(AbstractInterruptionHandler):
 
     def execute(self, irq):
         log.logger.info(" Program Finished ")
-        self.contextSwitchFromRunningTo(State.sterminated)
+        #self.contextSwitchFromRunningTo(State.sterminated)
+        self.running_to_terminated()
+        if self.kernel.scheduler.hasNext():
+            self.ready_to_running()
 
 
 class NewInterruptionHandler(AbstractInterruptionHandler):
@@ -149,48 +182,53 @@ class NewInterruptionHandler(AbstractInterruptionHandler):
         log.logger.info("New loading {} {}".format(program, priority))
         baseDir, limit = self.kernel.loader.load(program)
         pcb = ProcessControlBlock(program, baseDir, limit, priority)
-        pcb.state = State.snew
-        self.kernel.pcbTable.update(pcb) #add pcb
+        self.to_new(pcb)
         # to ready or running
-        self.contextSwitchToReadyOrRunning(pcb)
+        #self.contextSwitchToReadyOrRunning(pcb)
+        if self.kernel.pcbTable.runningPCB == None:
+            print("TO running" * 3)
+            self.new_to_running(pcb)
+        else:
+            print("TO READY" * 3)
+            self.new_to_ready(pcb)
 
-        #ayuda visual
-        
-        
 
 class IoInInterruptionHandler(AbstractInterruptionHandler):
 
     def execute(self, irq):
-        HARDWARE.timer.reset()
+        #HARDWARE.timer.reset()
+        #pcb = self.contextSwitchFromRunningTo(State.swaiting)
         operation = irq.parameters
-        pcb = self.contextSwitchFromRunningTo(State.swaiting)
+        pcb = self.running_to_waiting()
         log.logger.info(self.kernel.ioDeviceController)
         self.kernel.ioDeviceController.runOperation(pcb, operation)
+        if self.kernel.scheduler.hasNext():
+            self.ready_to_running()
 
-        #ayuda visual
-        
 
 
 class IoOutInterruptionHandler(AbstractInterruptionHandler):
 
     def execute(self, irq):
         pcb = self.kernel.ioDeviceController.getFinishedPCB()
-        pcb.state = State.sready
-        self.kernel.pcbTable.update(pcb) #update pcb
+        #pcb.state = State.sready
+        #self.kernel.pcbTable.update(pcb) #update pcb
         # to ready or running
-        self.contextSwitchToReadyOrRunning(pcb)
+        if self.kernel.pcbTable.runningPCB == None:
+            self.waiting_to_running(pcb)
+        else:
+            self.waiting_to_ready(pcb)
         log.logger.info(self.kernel.ioDeviceController)
 
-        #ayuda visual
-        
 
 class TimeoutInterruptionHandler(AbstractInterruptionHandler):
 
     def execute(self, irq):
-        HARDWARE.timer.reset()
+        #HARDWARE.timer.reset()
         if self.kernel.scheduler.hasNext():
             pcb = self.kernel.scheduler.getNext()
-            self.contextSwitchToReadyOrRunning(pcb)
+            #self.contextSwitchToReadyOrRunning(pcb)
+            expropiate(pcb)
 
 
 #emul dispacher
@@ -200,8 +238,9 @@ class Dispacher():
         HARDWARE.cpu.pc = pcb.pc
         HARDWARE.mmu.baseDir = pcb.baseDir
         HARDWARE.mmu.limit = pcb.limit
+        HARDWARE.timer.reset()
 
-    def save(self, pcb):
+    def save(self, pcb): 
         pcb.pc = HARDWARE.cpu.pc
         HARDWARE.cpu.pc = -1
 
@@ -222,11 +261,20 @@ class PcbTable():
     def get(self, pid):
         return self._tablePcb.get(pid)
 
-    def update(self, pcb):
-        self._tablePcb.update({pcb.pid: pcb})
+    def update(self, pcb, updState):
+        if self.runningPCB != None and pcb.pid == self.runningPCB.pid and updState != State.srunning:
+            self._running = None
+        pcb.state = updState
+        if updState == State.srunning:
+            self._running = pcb
+        if updState == State.sterminated:
+            self._tablePcb.pop(pcb.pid)
+        else:
+            self._tablePcb.update({pcb.pid: pcb})
 
-    def remove(self, pid):
-        self._tablePcb.pop(pid)
+    # now update remove the pcb terminated
+    #def remove(self, pcb):
+    #    self._tablePcb.pop(pcb.pid)
 
     @property
     def runningPCB(self):
@@ -386,8 +434,11 @@ class SchedulerNonPreemtive(AbstractScheduler):
 
 class SchedulerPreemtive(SchedulerNonPreemtive):
 
-    def  __isPreemtive__ (self, pcb1, pcb2):
-        return pcb1.priority > pcb2.priority
+    # denota True si:
+    #  el nro de prioridad del pcb entrante es menor(MAYOR orden) 
+    #  al nro de prioridad del pcb corriendo
+    def isPreemtive (self, pcbRunning, pcbNew):
+        return pcbNew < pcbRunning
 
   
 class SchedulerFCFS(AbstractScheduler):
