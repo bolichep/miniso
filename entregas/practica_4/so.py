@@ -108,59 +108,43 @@ class AbstractInterruptionHandler():
     def running_to_waiting(self): #4
         k = self.kernel
         pcb = k.pcbTable.runningPCB
-        print("RUNNING TO WAITING", pcb)
         k.dispacher.save(pcb)
         k.pcbTable.update(pcb, State.swaiting)
-        print("RUNNING TO WAITING", pcb)
         return pcb
 
     def ready_to_running(self): #5
         k = self.kernel
         pcb = k.scheduler.getNext()
-        print("READY TO RUNNING", pcb)
         k.pcbTable.update(pcb, State.srunning)
         k.dispacher.load(pcb)
-        print("READY TO RUNNING", pcb)
 
     def running_to_terminated(self): #6
         k = self.kernel
         pcb = k.pcbTable.runningPCB
-        print("RUNNING TO TERMINATED", pcb)
         k.dispacher.save(pcb)
         k.pcbTable.update(pcb, State.sterminated)
-        print("RUNNING TO TERMINATED", pcb)
 
     def waiting_to_running(self, pcb): #7
         k = self.kernel
-        print("WAITING TO RUNNING", pcb)
         k.pcbTable.update(pcb, State.srunning)
         k.dispacher.load(pcb)
-        print("WAITING TO RUNNING", pcb)
 
     def waiting_to_ready(self, pcb): #8
         k = self.kernel
-        print("WAITING TO READY", pcb)
         k.pcbTable.update(pcb, State.sready)
-        print("WAITING TO READY", pcb)
         k.scheduler.add(pcb)
-        print("SCHEDULER", k.scheduler)
 
     def running_to_ready(self): #9
         k = self.kernel
         pcb = k.pcbTable.runningPCB
-        print("RUNNING TO READY", pcb)
         k.dispacher.save(pcb)
         k.pcbTable.update(pcb, State.sready)
-        print("RUNNING TO READY", pcb)
         k.scheduler.add(pcb)
-        print("SCHEDULER", k.scheduler)
 
     def to_running(self, pcb):
         k = self.kernel
-        print("To RUNNING", pcb)
         k.pcbTable.update(pcb, State.srunning)
         k.dispacher.load(pcb)
-        print("To RUNNING", pcb)
         
 
     def expropiate(self, pcb):
@@ -193,14 +177,11 @@ class NewInterruptionHandler(AbstractInterruptionHandler):
         # to ready or running
         #self.contextSwitchToReadyOrRunning(pcb)
         if self.kernel.pcbTable.runningPCB == None:
-            print("TO running" * 3)
             self.new_to_running(pcb)
         else:
             if self.kernel.scheduler.isPreemtive(self.kernel.pcbTable.runningPCB, pcb):
-                print("EXPROPIATE" * 3)
                 self.expropiate(pcb)
             else:
-                print("TO READY" * 3)
                 self.new_to_ready(pcb)
 
 
