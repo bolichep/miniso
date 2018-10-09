@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 from hardware import *
-from switch import *
 import log
 from enum import Enum
 
@@ -95,53 +94,53 @@ class AbstractInterruptionHandler():
         k = self.kernel
         k.pcbTable.update(pcb, State.snew)
 
-    def new_to_running(self, pcb): #1
+    def new_to_running(self, pcb): #1 n
         k = self.kernel
         k.pcbTable.update(pcb, State.srunning)
         k.dispacher.load(pcb)
 
-    def new_to_ready(self, pcb): #3
+    def new_to_ready(self, pcb): #3 n
         k = self.kernel
         k.pcbTable.update(pcb, State.sready)
         k.scheduler.add(pcb)
 
-    def running_to_waiting(self): #4
+    def running_to_waiting(self): #4 i
         k = self.kernel
         pcb = k.pcbTable.runningPCB
         k.dispacher.save(pcb)
         k.pcbTable.update(pcb, State.swaiting)
         return pcb
 
-    def ready_to_running(self): #5
+    def ready_to_running(self): #5 k i
         k = self.kernel
         pcb = k.scheduler.getNext()
         k.pcbTable.update(pcb, State.srunning)
         k.dispacher.load(pcb)
 
-    def running_to_terminated(self): #6
+    def running_to_terminated(self): #6 k
         k = self.kernel
         pcb = k.pcbTable.runningPCB
         k.dispacher.save(pcb)
         k.pcbTable.update(pcb, State.sterminated)
 
-    def waiting_to_running(self, pcb): #7
+    def waiting_to_running(self, pcb): #7 o
         k = self.kernel
         k.pcbTable.update(pcb, State.srunning)
         k.dispacher.load(pcb)
 
-    def waiting_to_ready(self, pcb): #8
+    def waiting_to_ready(self, pcb): # o
         k = self.kernel
         k.pcbTable.update(pcb, State.sready)
         k.scheduler.add(pcb)
 
-    def running_to_ready(self): #9
+    def running_to_ready(self): #9 n o t
         k = self.kernel
         pcb = k.pcbTable.runningPCB
         k.dispacher.save(pcb)
         k.pcbTable.update(pcb, State.sready)
         k.scheduler.add(pcb)
 
-    def to_running(self, pcb):
+    def to_running(self, pcb):  # n o t
         k = self.kernel
         k.pcbTable.update(pcb, State.srunning)
         k.dispacher.load(pcb)
