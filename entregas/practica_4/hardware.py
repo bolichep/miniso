@@ -279,7 +279,7 @@ class Timer:
         # registro que el proceso en CPU corrio un ciclo mas 
         self._tickCount += 1
 
-        if self._active and (self._tickCount > self._quantum) :                                        
+        if self._active and (self._tickCount > self._quantum) and self._cpu.pc != -1 :                                        
             # se “cumplio” el limite de ejecuciones
             timeoutIRQ = IRQ(TIMEOUT_INTERRUPTION_TYPE)
             self._interruptVector.handle(timeoutIRQ)

@@ -93,7 +93,7 @@ class AbstractInterruptionHandler():
     def execute(self, irq):
         log.logger.error("-- EXECUTE MUST BE OVERRIDEN in class {classname}".format(classname=self.__class__.__name__))
 
-    def contextSwitchFromRunningTo(self, toState):
+    def contextSwitchFromRunningTo (self, toState):
         prevPCB = self.kernel.pcbTable.runningPCB
         prevPCB.state = toState
         self.kernel.dispacher.save(prevPCB)
@@ -195,6 +195,8 @@ class TimeoutInterruptionHandler(AbstractInterruptionHandler):
         if self.kernel.scheduler.hasNext():
             pcb = self.kernel.scheduler.getNext()
             self.contextSwitchToReadyOrRunning(pcb, True)
+        else :
+            self.kernel.dispacher.resetTimer()
 
 
 #emul dispacher
@@ -209,6 +211,9 @@ class Dispacher():
     def save(self, pcb):
         pcb.pc = HARDWARE.cpu.pc
         HARDWARE.cpu.pc = -1
+
+    def resetTimer(self):
+        HARDWARE.timer.reset()
 
 #enum states of a process(mio)
 class State(Enum):
@@ -424,7 +429,7 @@ class SchedulerFCFS(AbstractScheduler):
     def hasNext(self):
         return  self._readyQueue
 
-    def isPreemtive(self, pcb1, pcb2 ):
+    def isPreemtive(self, pcb1, pcb2, x):
         return False
 
 class SchedulerRRB(AbstractScheduler):
