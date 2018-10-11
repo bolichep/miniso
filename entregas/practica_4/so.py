@@ -222,6 +222,17 @@ class PcbTable():
     def get(self, pid):
         return self._tablePcb.get(pid)
 
+    def update(self, pcb, updState):
+        if self.runningPCB != None and pcb.pid == self.runningPCB.pid and updState != State.srunning:
+            self._running = None
+        pcb.state = updState
+        if updState == State.srunning:
+            self._running = pcb
+        if updState == State.sterminated:
+            self._tablePcb.pop(pcb.pid)
+        else:
+            self._tablePcb.update({pcb.pid: pcb})
+
     def update(self, pcb):
         self._tablePcb.update({pcb.pid: pcb})
 
