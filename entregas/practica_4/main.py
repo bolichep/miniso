@@ -2,6 +2,7 @@ from hardware import *
 from so import *
 import log
 from shell import *
+from time import sleep
 import sys
 
 
@@ -46,6 +47,7 @@ if __name__ == '__main__':
     ## new create the Operative System Kernel
     # "booteamos" el sistema operativo
     kernel = Kernel(scheduler)
+    sleep(1)
 
     # Ahora vamos a intentar ejecutar 3 programas a la vez
     ##################
