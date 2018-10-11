@@ -153,7 +153,7 @@ class NewInterruptionHandler(AbstractInterruptionHandler):
         self.kernel.pcbTable.update(pcb) #add pcb
         # to ready or running
         self.contextSwitchToReadyOrRunning(pcb)
-
+       if self. self.kernel.gantt.tick(0)
         #ayuda visual
         
         
@@ -475,6 +475,8 @@ class Gantt():
 class Kernel():
 
     def __init__(self, scheduler):
+
+        self._gantt_graphic = Gantt(self)
         ## setup interruption handlers
         newHandler = NewInterruptionHandler(self)
         HARDWARE.interruptVector.register(NEW_INTERRUPTION_TYPE, newHandler)
@@ -494,13 +496,14 @@ class Kernel():
         ## controls the Hardware's I/O Device
         self._ioDeviceController = IoDeviceController(HARDWARE.ioDevice)
 
+
         self._pcbTable = PcbTable()
         self._dispacher = Dispacher()
+
 
         self._scheduler = scheduler
         self._loader = Loader()
 
-        self._gantt_graphic = Gantt(self)
 
     @property
     def loader(self):
@@ -513,6 +516,9 @@ class Kernel():
     @property
     def dispacher(self):
         return self._dispacher
+    @property
+    def gantt(self):
+        return self._gantt_graphic
     
     @property
     def ioDeviceController(self):
