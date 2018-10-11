@@ -110,7 +110,7 @@ class AbstractInterruptionHandler():
             self.kernel.dispacher.load(nextPCB)
         return prevPCB
 
-    def contextSwitchToReadyOrRunning(self, nextPCB):
+    def contextSwitchToReadyOrRunning(self, nextPCB, isNew):
         if self.kernel.pcbTable.runningPCB == None:
             self.kernel.dispacher.load(nextPCB)
             nextPCB.state = State.srunning
@@ -118,16 +118,22 @@ class AbstractInterruptionHandler():
         else:
             nextPCB.state = State.sready
             prevPCB = self.kernel.pcbTable.runningPCB
-            if self.kernel.scheduler.isPreemtive(prevPCB, nextPCB) :
-                self.contextSwapPreemtive(nextPCB)
+            if  self.kernel.scheduler.isPreemtive(prevPCB, nextPCB, isNew) :
+                prevPCB.state = State.sready
+                self.kernel.pcbTable.runningPCB = nextPCB
+                self.kernel.dispacher.save(prevPCB)
+                self.kernel.pcbTable.update(prevPCB)
+                self.kernel.dispacher.load(nextPCB)
+                self.kernel.scheduler.add(prevPCB)
                 nextPCB.state = State.srunning
             else : 
                 self.kernel.scheduler.add(nextPCB)
+            print("dentro del if true", self.kernel.pcbTable)
         self.kernel.pcbTable.update(nextPCB)
 
     def contextSwapPreemtive(self, nextPCB):
         prevPCB = self.kernel.pcbTable.runningPCB
-        prevPCB.State = State.sready
+        prevPCB.state = State.sready
         self.kernel.pcbTable.runningPCB = nextPCB
         self.kernel.dispacher.load(nextPCB)
         self.kernel.scheduler.add(prevPCB)
@@ -152,8 +158,7 @@ class NewInterruptionHandler(AbstractInterruptionHandler):
         pcb.state = State.snew
         self.kernel.pcbTable.update(pcb) #add pcb
         # to ready or running
-        self.contextSwitchToReadyOrRunning(pcb)
-       if self. self.kernel.gantt.tick(0)
+        self.contextSwitchToReadyOrRunning(pcb, False)
         #ayuda visual
         
         
@@ -161,7 +166,6 @@ class NewInterruptionHandler(AbstractInterruptionHandler):
 class IoInInterruptionHandler(AbstractInterruptionHandler):
 
     def execute(self, irq):
-        HARDWARE.timer.reset()
         operation = irq.parameters
         pcb = self.contextSwitchFromRunningTo(State.swaiting)
         log.logger.info(self.kernel.ioDeviceController)
@@ -178,7 +182,7 @@ class IoOutInterruptionHandler(AbstractInterruptionHandler):
         pcb.state = State.sready
         self.kernel.pcbTable.update(pcb) #update pcb
         # to ready or running
-        self.contextSwitchToReadyOrRunning(pcb)
+        self.contextSwitchToReadyOrRunning(pcb, False)
         log.logger.info(self.kernel.ioDeviceController)
 
         #ayuda visual
@@ -187,10 +191,10 @@ class IoOutInterruptionHandler(AbstractInterruptionHandler):
 class TimeoutInterruptionHandler(AbstractInterruptionHandler):
 
     def execute(self, irq):
-        HARDWARE.timer.reset()
+        
         if self.kernel.scheduler.hasNext():
             pcb = self.kernel.scheduler.getNext()
-            self.contextSwitchToReadyOrRunning(pcb)
+            self.contextSwitchToReadyOrRunning(pcb, True)
 
 
 #emul dispacher
@@ -200,6 +204,7 @@ class Dispacher():
         HARDWARE.cpu.pc = pcb.pc
         HARDWARE.mmu.baseDir = pcb.baseDir
         HARDWARE.mmu.limit = pcb.limit
+        HARDWARE.timer.reset()
 
     def save(self, pcb):
         pcb.pc = HARDWARE.cpu.pc
@@ -396,13 +401,13 @@ class SchedulerNonPreemtive(AbstractScheduler):
     def hasNext(self):
         return self._cantE > 0
 
-    def isPreemtive(self, pcb1, pcb2):
+    def isPreemtive(self, pcb1, pcb2, isNew):
         return False        
 
 class SchedulerPreemtive(SchedulerNonPreemtive):
 
-    def  __isPreemtive__ (self, pcb1, pcb2):
-        return pcb1.priority > pcb2.priority
+    def  isPreemtive (self, pcbrunning, pcbready, isNew):
+        return pcbrunning.priority > pcbready.priority
 
   
 class SchedulerFCFS(AbstractScheduler):
@@ -419,7 +424,7 @@ class SchedulerFCFS(AbstractScheduler):
     def hasNext(self):
         return  self._readyQueue
 
-    def isPreemtive(self, pcb1, pcb2):
+    def isPreemtive(self, pcb1, pcb2 ):
         return False
 
 class SchedulerRRB(AbstractScheduler):
@@ -437,8 +442,8 @@ class SchedulerRRB(AbstractScheduler):
     def hasNext(self):
         return self._readyQueue
 
-    def isPreemtive(self, pcb1, pcb2):
-        return False
+    def isPreemtive(self, pcb1, pcb2, expropiate = True):
+        return expropiate
 
 class Gantt():
 
@@ -447,6 +452,9 @@ class Gantt():
         self._kernel = kernel
         self._ticks = -1
         self._graph = dict()
+
+    def ticks(self):
+        return self._ticks
 
     def tick(self, tickNbr):
         self._ticks += 1
@@ -462,7 +470,7 @@ class Gantt():
             elif pcb.state == State.swaiting:
                 self._graph[pcb.pid] += "w"
             else:
-                self._graph[pcb.pid] += " "
+                self._graph[pcb.pid] += "."
 
         log.logger.info("Gantt ***** {}\npid prio ".format(self._ticks))
         for (i, string) in self._graph.items():
