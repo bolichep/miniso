@@ -229,6 +229,10 @@ class PcbTable():
         self._tablePcb.pop(pid)
 
     @property
+    def table(self):
+        return self._tablePcb
+    
+    @property
     def runningPCB(self):
         return self._running
 
@@ -425,6 +429,33 @@ class SchedulerRRB(AbstractScheduler):
     def isPreemtive(self, pcb1, pcb2):
         return False
 
+class Gantt():
+
+    def __init__(self, kernel):
+        HARDWARE.clock.addSubscriber(self)
+        self._kernel = kernel
+        self._ticks = -1
+        self._graph = dict()
+
+    def tick(self, tickNbr):
+        self._ticks += 1
+        g = ""
+        for (i, pcb)  in self._kernel.pcbTable.table.items():
+            if pcb.pid not in self._graph:
+                self._graph[pcb.pid] = "{}   {}    {}".format(pcb.pid, pcb.priority, " " * self._ticks)
+
+            if pcb.state == State.srunning:
+                self._graph[pcb.pid] += "R"
+            elif pcb.state == State.sready:
+                self._graph[pcb.pid] += "r"
+            elif pcb.state == State.swaiting:
+                self._graph[pcb.pid] += "w"
+            else:
+                self._graph[pcb.pid] += " "
+
+        log.logger.info("Gantt ***** {}\npid prio ".format(self._ticks))
+        for (i, string) in self._graph.items():
+            log.logger.info(string)
 
 
   
@@ -458,6 +489,7 @@ class Kernel():
         self._scheduler = scheduler
         self._loader = Loader()
 
+        self._gantt_graphic = Gantt(self)
 
     @property
     def loader(self):
