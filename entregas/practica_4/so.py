@@ -539,7 +539,7 @@ class Kernel():
          
     ## emulates a "system call" for programs execution
     def run(self, program, priority):
-        newINT = IRQ(NEW_INTERRUPTION_TYPE, (program, priority))
+        newINT = IRQ(NEW_INTERRUPTION_TYPE, (program, int(priority)))
         #log.logger.info("Set New Int Handler")# ayuda visual
         HARDWARE.interruptVector.handle(newINT)
         log.logger.info("\n Executing program: {name}".format(name=program.name))
