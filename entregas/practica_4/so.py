@@ -110,7 +110,7 @@ class AbstractInterruptionHandler():
             self.kernel.dispacher.load(nextPCB)
         return prevPCB
 
-    def contextSwitchToReadyOrRunning(self, nextPCB, isNew):
+    def contextSwitchToReadyOrRunning(self, nextPCB, expropiate):
         if self.kernel.pcbTable.runningPCB == None:
             self.kernel.dispacher.load(nextPCB)
             nextPCB.state = State.srunning
@@ -118,7 +118,7 @@ class AbstractInterruptionHandler():
         else:
             nextPCB.state = State.sready
             prevPCB = self.kernel.pcbTable.runningPCB
-            if  self.kernel.scheduler.isPreemtive(prevPCB, nextPCB, isNew) :
+            if  self.kernel.scheduler.isPreemtive(prevPCB, nextPCB, expropiate):
                 prevPCB.state = State.sready
                 self.kernel.pcbTable.runningPCB = nextPCB
                 self.kernel.dispacher.save(prevPCB)
@@ -128,7 +128,6 @@ class AbstractInterruptionHandler():
                 nextPCB.state = State.srunning
             else : 
                 self.kernel.scheduler.add(nextPCB)
-            print("dentro del if true", self.kernel.pcbTable)
         self.kernel.pcbTable.update(nextPCB)
 
     def contextSwapPreemtive(self, nextPCB):
@@ -152,13 +151,14 @@ class NewInterruptionHandler(AbstractInterruptionHandler):
 
     def execute(self, irq):
         (program, priority) = irq.parameters
+        priority = 4 if priority > 4 or priority < 0 else priority
         log.logger.info("New loading {} {}".format(program, priority))
         baseDir, limit = self.kernel.loader.load(program)
         pcb = ProcessControlBlock(program, baseDir, limit, priority)
         pcb.state = State.snew
         self.kernel.pcbTable.update(pcb) #add pcb
         # to ready or running
-        self.contextSwitchToReadyOrRunning(pcb, False)
+        self.contextSwitchToReadyOrRunning(pcb, expropiate = False)
         #ayuda visual
         
         
@@ -195,7 +195,7 @@ class TimeoutInterruptionHandler(AbstractInterruptionHandler):
         if self.kernel.scheduler.hasNext():
             pcb = self.kernel.scheduler.getNext()
             self.contextSwitchToReadyOrRunning(pcb, True)
-        else :
+        else:
             self.kernel.dispacher.resetTimer()
 
 
@@ -406,12 +406,12 @@ class SchedulerNonPreemtive(AbstractScheduler):
     def hasNext(self):
         return self._cantE > 0
 
-    def isPreemtive(self, pcb1, pcb2, isNew):
+    def isPreemtive(self, pcb1, pcb2, expropiate):
         return False        
 
 class SchedulerPreemtive(SchedulerNonPreemtive):
 
-    def  isPreemtive (self, pcbrunning, pcbready, isNew):
+    def  isPreemtive (self, pcbrunning, pcbready, expropiate):
         return pcbrunning.priority > pcbready.priority
 
   
@@ -429,7 +429,7 @@ class SchedulerFCFS(AbstractScheduler):
     def hasNext(self):
         return  self._readyQueue
 
-    def isPreemtive(self, pcb1, pcb2, x):
+    def isPreemtive(self, pcb1, pcb2, expropiate):
         return False
 
 class SchedulerRRB(AbstractScheduler):
