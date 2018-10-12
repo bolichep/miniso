@@ -215,6 +215,10 @@ class Dispacher():
     def resetTimer(self):
         HARDWARE.timer.reset()
 
+    def addSubscriber(self, subscriber):
+        HARDWARE.clock.addSubscriber(subscriber)
+
+
 #enum states of a process(mio)
 class State(Enum):
     snew = 0
@@ -364,6 +368,7 @@ class AbstractScheduler():
     def readyQueue(self):
         return self._readyQueue
 
+
 class SchedulerNonPreemtive(AbstractScheduler):
 
     def __init__(self):
@@ -453,8 +458,8 @@ class SchedulerRRB(AbstractScheduler):
 class Gantt():
 
     def __init__(self, kernel):
-        HARDWARE.clock.addSubscriber(self)
         self._kernel = kernel
+        self._kernel.dispacher.addSubscriber(self)
         self._ticks = -1
         self._graph = dict()
 
@@ -489,7 +494,7 @@ class Kernel():
 
     def __init__(self, scheduler):
 
-        self._gantt_graphic = Gantt(self)
+
         ## setup interruption handlers
         newHandler = NewInterruptionHandler(self)
         HARDWARE.interruptVector.register(NEW_INTERRUPTION_TYPE, newHandler)
@@ -513,6 +518,7 @@ class Kernel():
         self._pcbTable = PcbTable()
         self._dispacher = Dispacher()
 
+        self._gantt_graphic = Gantt(self)
 
         self._scheduler = scheduler
         self._loader = Loader()
@@ -529,6 +535,7 @@ class Kernel():
     @property
     def dispacher(self):
         return self._dispacher
+
     @property
     def gantt(self):
         return self._gantt_graphic
