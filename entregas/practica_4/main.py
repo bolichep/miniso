@@ -13,8 +13,8 @@ if __name__ == '__main__':
     log.setupLogger()
     log.logger.info('Starting emulator')
 
-    ## setup our hardware and set memory size to 25 "cells"
-    HARDWARE.setup(35)
+    ## setup our hardware and set memory size to 55 "cells"
+    HARDWARE.setup(55)
 
     SCHEDULER_FCFS = 'FCFS'
     SCHEDULER_RR = 'RR'
