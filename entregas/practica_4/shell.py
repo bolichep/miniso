@@ -1,6 +1,7 @@
 from hardware import *
 import log
 from so import *
+import readline
 
 
 class shell():
@@ -39,11 +40,9 @@ class shell():
             try:
                 comandos = []
                 while not comandos:
-                    print("& ", end="")
-                    comandos = input().split()
+                    comandos = input("& ").split()
 
                 while comandos:
-
                     if comandos[0] == 'ls':
                         for f in shell.fs:
                             print("{:<8} {}".format(f, shell.fs.get(f)))
