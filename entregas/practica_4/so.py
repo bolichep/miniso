@@ -385,15 +385,15 @@ class SchedulerNonPreemtive(AbstractScheduler):
         #self._readyQueue = sorted ( self._readyQueue,  key = lambda x: 0 - x.priority)
         self._cantE += 1
         if pcb.priority == 0 :
-            self._readyQueue0.append(pcb)
+            self._readyQueue0.insert(0, pcb)
         elif pcb.priority == 1 :
-            self._readyQueue1.append(pcb)
+            self._readyQueue1.insert(0, pcb)
         elif pcb.priority == 2 :
-            self._readyQueue2.append(pcb)
+            self._readyQueue2.insert(0, pcb)
         elif pcb.priority == 3 :
-            self._readyQueue3.append(pcb)
+            self._readyQueue3.insert(0, pcb)
         elif pcb.priority == 4 :
-            self._readyQueue4.append(pcb)
+            self._readyQueue4.insert(0, pcb)
 
     def getNext(self):
         self._cantE -= 1
@@ -426,10 +426,10 @@ class SchedulerFCFS(AbstractScheduler):
         self._readyQueue = self.emptyReadyQueue()
 
     def add(self, pcb):
-        self._readyQueue.append(pcb)
+        self._readyQueue.insert(0, pcb) #.insert(0, x) is O(n)
 
     def getNext(self):
-        return self._readyQueue.pop(0) #.pop(0) is O(n)
+        return self._readyQueue.pop() #.pop(0) is O(n)
 
     def hasNext(self):
         return  self._readyQueue
@@ -443,11 +443,11 @@ class SchedulerRRB(AbstractScheduler):
         self._readyQueue = []
         self._isPrioritaty = False
 
-    def add(self, nextPCB):
-        self._readyQueue.append(nextPCB)
+    def add(self, pcb):
+        self._readyQueue.insert(0, pcb)
 
     def getNext(self):
-        return self._readyQueue.pop(0)
+        return self._readyQueue.pop() #.pop(0) is O(n)
 
     def hasNext(self):
         return self._readyQueue
