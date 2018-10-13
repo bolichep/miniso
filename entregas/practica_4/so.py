@@ -482,7 +482,7 @@ class Gantt():
             else:
                 self._graph[pcb.pid] += "."
 
-        log.logger.info("Gantt ***** {}\npid prio ".format(self._ticks))
+        log.logger.info("Gantt ***** {}\npid prio (R)unning (r)eady (w)aiting".format(self._ticks))
         for (i, string) in self._graph.items():
             log.logger.info(string)
 
