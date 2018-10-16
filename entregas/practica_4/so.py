@@ -119,24 +119,19 @@ class AbstractInterruptionHandler():
             nextPCB.state = State.sready
             prevPCB = self.kernel.pcbTable.runningPCB
             if  self.kernel.scheduler.isPreemtive(prevPCB, nextPCB, expropiate):
-                prevPCB.state = State.sready
-                self.kernel.pcbTable.runningPCB = nextPCB
-                self.kernel.dispacher.save(prevPCB)
-                self.kernel.pcbTable.update(prevPCB)
-                self.kernel.dispacher.load(nextPCB)
-                self.kernel.scheduler.add(prevPCB)
+                self.contextSwapPreemtive(nextPCB, prevPCB)
                 nextPCB.state = State.srunning
             else : 
                 self.kernel.scheduler.add(nextPCB)
         self.kernel.pcbTable.update(nextPCB)
 
-    def contextSwapPreemtive(self, nextPCB):
-        prevPCB = self.kernel.pcbTable.runningPCB
+    def contextSwapPreemtive(self, nextPCB, prevPCB):
         prevPCB.state = State.sready
         self.kernel.pcbTable.runningPCB = nextPCB
+        self.kernel.dispacher.save(prevPCB)
+        self.kernel.pcbTable.update(prevPCB)
         self.kernel.dispacher.load(nextPCB)
         self.kernel.scheduler.add(prevPCB)
-        self.kernel.pcbTable.update(prevPCB)
 
 
 
@@ -386,6 +381,8 @@ class SchedulerNonPreemtive(AbstractScheduler):
         self._cantE += 1
         if pcb.priority == 0 :
             self._readyQueue0.insert(0, pcb)
+        elif self._shouldIAging():
+             self._aging()
         elif pcb.priority == 1 :
             self._readyQueue1.insert(0, pcb)
         elif pcb.priority == 2 :
@@ -399,14 +396,35 @@ class SchedulerNonPreemtive(AbstractScheduler):
         self._cantE -= 1
         if self._readyQueue0 :
             return self._readyQueue0.pop()
-        if self._readyQueue1 : 
+        elif self._shouldIAging():
+             self._aging()
+        elif self._readyQueue1 : 
             return self._readyQueue1.pop()
-        if self._readyQueue2 :
+        elif self._readyQueue2 :
             return self._readyQueue2.pop()
-        if self._readyQueue3 :
+        elif self._readyQueue3 :
             return self._readyQueue3.pop()
-        if self._readyQueue4 :
+        elif self._readyQueue4 :
             return self._readyQueue4.pop()
+
+    def _shouldIAging(self):
+        if self._cantE > 15:
+            return True
+
+    def _aging(self):
+        if self._readyQueue4 :
+            self._readyQueue0.insert(0,
+                                     self._readyQueue4.pop())
+        elif self._readyQueue3 and not(self._readyQueue4): 
+            self._readyQueue0.insert(0, 
+                                     self._readyQueue3.pop())
+        elif self._readyQueue2 and not(self._readyQueue3):
+            self._readyQueue0.insert(0, 
+                                     self._readyQueue2.pop())
+        elif self._readyQueue1 and not(self._readyQueue2):
+            self._readyQueue0.insert(0, 
+                                     self._readyQueue1.pop())
+
 
     def hasNext(self):
         return self._cantE > 0
@@ -558,3 +576,4 @@ class Kernel():
 
     def __repr__(self):
         return "Kernel "
+ 
