@@ -368,45 +368,64 @@ class AbstractScheduler():
     def readyQueue(self):
         return self._readyQueue
 
+    def _maxPrio(self):
+        return 4
+
+class Age:
+
+    def __init__(self, preset):
+        self.preset = preset
+        self.now = self.preset
+
+    def dec(self):
+        self.now -= 1
+
+    def reset(self):
+        self.now = self.preset
+
+    def isZero(self):
+        return self.now == 0
+
 
 class SchedulerNonPreemtive(AbstractScheduler):
 
     def __init__(self):
         self._cantE = 0
-        self._readyQueue0 = self.emptyReadyQueue()
-        self._readyQueue1 = self.emptyReadyQueue()
-        self._readyQueue2 = self.emptyReadyQueue()
-        self._readyQueue3 = self.emptyReadyQueue()
-        self._readyQueue4 = self.emptyReadyQueue()
+        self._readyQueue = [(Age(3),[]) * 5]
+        currPrio = 0
+        print ("AGE $$$$$$$", self._age)
+
+    def _ownAge(self, priority):
+        #return 2 ** (priority + 1)
+        #return 2 * (priority + 1)
+        return self._readyQueue[priority][0]
+
 
     def add(self, pcb):
-        #self._readyQueue.append(pcb)
-        # sorted seria  O(N log N), buscar mejor opcion
-        #self._readyQueue = sorted ( self._readyQueue,  key = lambda x: 0 - x.priority)
         self._cantE += 1
-        if pcb.priority == 0 :
-            self._readyQueue0.insert(0, pcb)
-        elif pcb.priority == 1 :
-            self._readyQueue1.insert(0, pcb)
-        elif pcb.priority == 2 :
-            self._readyQueue2.insert(0, pcb)
-        elif pcb.priority == 3 :
-            self._readyQueue3.insert(0, pcb)
-        elif pcb.priority == 4 :
-            self._readyQueue4.insert(0, pcb)
+        self._readyQueue[pcb.priority].insert(0, pcb)
 
+    # prec: there is a pcb at queue
     def getNext(self):
         self._cantE -= 1
-        if self._readyQueue0 :
-            return self._readyQueue0.pop()
-        if self._readyQueue1 : 
-            return self._readyQueue1.pop()
-        if self._readyQueue2 :
-            return self._readyQueue2.pop()
-        if self._readyQueue3 :
-            return self._readyQueue3.pop()
-        if self._readyQueue4 :
-            return self._readyQueue4.pop()
+        currPrio = 0
+        # point to first non empty readyQueue
+        while not self._readyQueue[currPrio][1]:
+            currPrio += 1
+        self._readyQueue[currPrio][0].reset() # reset own queue age
+        if currPrio < self._maxPrio():
+            self._readyQueue[currPrio + 1][0].dec() # dec next queue age
+            if self._readyQueue[currPrio + 1] and self._age[currPrio + 1] == 0:
+                self._readyQueue[currPrio].append(
+                        self._readyQueue[currPrio + 1].pop())
+                self._age[currPrio + 1] = self._ownAge(currPrio + 1) # reset own queue age
+
+
+        print ("getNext", 
+                self._readyQueue[currPrio], 
+                self._age)
+
+        return self._readyQueue[currPrio].pop()
 
     def hasNext(self):
         return self._cantE > 0
