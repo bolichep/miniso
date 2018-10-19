@@ -368,6 +368,8 @@ class SchedulerNonPreemtive(AbstractScheduler):
 
     def __init__(self):
         self._cantE = 0
+        self._ageReset = 1
+        self._ageCount = self._ageReset
         self._readyQueue0 = self.emptyReadyQueue()
         self._readyQueue1 = self.emptyReadyQueue()
         self._readyQueue2 = self.emptyReadyQueue()
@@ -375,14 +377,11 @@ class SchedulerNonPreemtive(AbstractScheduler):
         self._readyQueue4 = self.emptyReadyQueue()
 
     def add(self, pcb):
-        #self._readyQueue.append(pcb)
-        # sorted seria  O(N log N), buscar mejor opcion
-        #self._readyQueue = sorted ( self._readyQueue,  key = lambda x: 0 - x.priority)
         self._cantE += 1
         if pcb.priority == 0 :
             self._readyQueue0.insert(0, pcb)
-        elif self._shouldIAging():
-             self._aging()
+        #elif self._shouldIAging():
+        #     self._aging()
         elif pcb.priority == 1 :
             self._readyQueue1.insert(0, pcb)
         elif pcb.priority == 2 :
@@ -392,12 +391,14 @@ class SchedulerNonPreemtive(AbstractScheduler):
         elif pcb.priority == 4 :
             self._readyQueue4.insert(0, pcb)
 
+    # prec hay al menos un pcb en el queue
     def getNext(self):
         self._cantE -= 1
+        self._ageCount -= 1
+        if self._shouldIAging():
+             self._aging()
         if self._readyQueue0 :
             return self._readyQueue0.pop()
-        elif self._shouldIAging():
-             self._aging()
         elif self._readyQueue1 : 
             return self._readyQueue1.pop()
         elif self._readyQueue2 :
@@ -408,18 +409,18 @@ class SchedulerNonPreemtive(AbstractScheduler):
             return self._readyQueue4.pop()
 
     def _shouldIAging(self):
-        if self._cantE > 15:
-            return True
+        return self._ageCount == 0
 
     def _aging(self):
+        self._ageCount = self._ageReset
         if self._readyQueue4 :
-            self._readyQueue0.insert(0,
+            self._readyQueue3.insert(0,
                                      self._readyQueue4.pop())
         elif self._readyQueue3 and not(self._readyQueue4): 
-            self._readyQueue0.insert(0, 
+            self._readyQueue2.insert(0, 
                                      self._readyQueue3.pop())
         elif self._readyQueue2 and not(self._readyQueue3):
-            self._readyQueue0.insert(0, 
+            self._readyQueue1.insert(0, 
                                      self._readyQueue2.pop())
         elif self._readyQueue1 and not(self._readyQueue2):
             self._readyQueue0.insert(0, 
