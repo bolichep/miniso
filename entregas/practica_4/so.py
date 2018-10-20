@@ -363,10 +363,18 @@ class AbstractScheduler():
     def readyQueue(self):
         return self._readyQueue
 
+    @property
+    def name(self):
+        return self._name
+
+    def __repr__(self):
+        return "{}\n {}".format(self._name, self._readyQueue)
+
 
 class SchedulerNonPreemtive(AbstractScheduler):
 
     def __init__(self):
+        self._name = "Non Preemtive"
         self._cantE = 0
         self._ageReset = 1
         self._ageCount = self._ageReset
@@ -433,15 +441,30 @@ class SchedulerNonPreemtive(AbstractScheduler):
     def isPreemtive(self, pcb1, pcb2, expropiate):
         return False        
 
+    def __repr__(self):
+        return "Scheduler readyQueue {}\n0{}\n1{}\n2{}\n3{}\n4{}".format(
+                self._name
+                ,self._readyQueue0
+                ,self._readyQueue1
+                ,self._readyQueue2
+                ,self._readyQueue3
+                ,self._readyQueue4
+                )
+
+
 class SchedulerPreemtive(SchedulerNonPreemtive):
 
-    def  isPreemtive (self, pcbrunning, pcbready, expropiate):
+    def __init__(self):
+        super().__init__()
+        self._name = "Preemtive"
+    
+    def isPreemtive (self, pcbrunning, pcbready, expropiate):
         return pcbrunning.priority > pcbready.priority
-
   
 class SchedulerFCFS(AbstractScheduler):
 
     def __init__(self):
+        self._name = "First Come First Served"
         self._readyQueue = self.emptyReadyQueue()
 
     def add(self, pcb):
@@ -459,6 +482,7 @@ class SchedulerFCFS(AbstractScheduler):
 class SchedulerRRB(AbstractScheduler):
 
     def __init__(self):
+        self._name = "Round Robin"
         self._readyQueue = []
         self._isPrioritaty = False
 

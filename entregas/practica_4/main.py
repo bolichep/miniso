@@ -38,7 +38,7 @@ if __name__ == '__main__':
     if sche == SCHEDULER_P:
         scheduler = SchedulerPreemtive()
 
-    print("Runnnig", scheduler)
+    print("Runnnig", scheduler.name)
 
 
     ## Switch on computer
