@@ -134,7 +134,6 @@ class AbstractInterruptionHandler():
         self.kernel.scheduler.add(prevPCB)
 
 
-
 class KillInterruptionHandler(AbstractInterruptionHandler):
 
     def execute(self, irq):
@@ -154,8 +153,6 @@ class NewInterruptionHandler(AbstractInterruptionHandler):
         self.kernel.pcbTable.update(pcb) #add pcb
         # to ready or running
         self.contextSwitchToReadyOrRunning(pcb, expropiate = False)
-        #ayuda visual
-        
         
 
 class IoInInterruptionHandler(AbstractInterruptionHandler):
@@ -165,9 +162,6 @@ class IoInInterruptionHandler(AbstractInterruptionHandler):
         pcb = self.contextSwitchFromRunningTo(State.swaiting)
         log.logger.info(self.kernel.ioDeviceController)
         self.kernel.ioDeviceController.runOperation(pcb, operation)
-
-        #ayuda visual
-        
 
 
 class IoOutInterruptionHandler(AbstractInterruptionHandler):
@@ -180,8 +174,6 @@ class IoOutInterruptionHandler(AbstractInterruptionHandler):
         self.contextSwitchToReadyOrRunning(pcb, False)
         log.logger.info(self.kernel.ioDeviceController)
 
-        #ayuda visual
-        
 
 class TimeoutInterruptionHandler(AbstractInterruptionHandler):
 
@@ -221,6 +213,7 @@ class State(Enum):
     srunning = 2
     swaiting = 3
     sterminated = 4
+
 
 #emul pcb table
 class PcbTable():
@@ -434,7 +427,6 @@ class SchedulerNonPreemtive(AbstractScheduler):
             self._readyQueue0.insert(0, 
                                      self._readyQueue1.pop())
 
-
     def hasNext(self):
         return self._cantE > 0
 
@@ -457,7 +449,7 @@ class SchedulerPreemtive(SchedulerNonPreemtive):
     def __init__(self):
         super().__init__()
         self._name = "Preemtive"
-    
+
     def isPreemtive (self, pcbrunning, pcbready, expropiate):
         return pcbrunning.priority > pcbready.priority
   
@@ -484,7 +476,6 @@ class SchedulerRRB(AbstractScheduler):
     def __init__(self):
         self._name = "Round Robin"
         self._readyQueue = []
-        self._isPrioritaty = False
 
     def add(self, pcb):
         self._readyQueue.insert(0, pcb)
@@ -528,8 +519,6 @@ class Gantt():
         log.logger.info("Gantt ***** {}\npid prio (R)unning (r)eady (w)aiting".format(self._ticks))
         for (i, string) in self._graph.items():
             log.logger.info(string)
-
-
   
 
 # emulates the core of an Operative System
