@@ -63,5 +63,9 @@ if __name__ == '__main__':
     kernel.run("prg2.exe",0)
     kernel.run("prg3.exe",0)
     #kernel.run("prg3.exe",2)
+    sleep(32)
+    kernel.run("prg1.exe",1)
+    kernel.run("prg2.exe",0)
+    kernel.run("prg3.exe",0)
 
     shell.com(kernel)

@@ -133,7 +133,9 @@ class KillInterruptionHandler(AbstractInterruptionHandler):
 
     def execute(self, irq):
         log.logger.info(" Program Finished ")
+        pcb = self.kernel.pcbTable.runningPCB 
         self.contextSwitchFromRunningTo(State.sterminated)
+        self.kernel._memoryManager.freeFrames(pcb.pages)
 
 
 class NewInterruptionHandler(AbstractInterruptionHandler):
@@ -358,12 +360,14 @@ class Loader():
         if not pages:
             raise Exception("No Hay memoria. [BSOD]... o demandá ;P")
         
-        baseDir = self.memoryPos
-        for index in range(self.memoryPos , (progSize + self.memoryPos)):
-            inst = programCode.instructions[index - self.memoryPos]
-            self._mm.memory.put(index, inst)
+        for instAddr in range(0, progSize):
+            physicalAddress = instAddr % 4 + pages[instAddr // 4] * 4
+            inst = programCode.instructions[instAddr]
+            self._mm.memory.put(physicalAddress, inst)
+            print(physicalAddress, inst)
 
-        self.memoryPos = index + 1
+        # TODO eliminar baseDir
+        baseDir = 0
         return pages, baseDir, progSize - 1 # limit = progSize - 1
 
 
@@ -573,10 +577,12 @@ class MemoryManager:
         else:
             go = []
 
+        print("Allocating: ", self._freeFrames)
         return go
 
     def freeFrames(self, frames):
         self._freeFrames += frames
+        print("Freeing: ", self._freeFrames)
 
     @property
     def memory(self):
