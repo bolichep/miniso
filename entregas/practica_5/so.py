@@ -192,7 +192,11 @@ class Dispacher():
         HARDWARE.cpu.pc = pcb.pc
         HARDWARE.mmu.baseDir = pcb.baseDir
         HARDWARE.mmu.limit = pcb.limit
+        HARDWARE.mmu.resetTLB()
+        for page in range(0, len(pcb.pages)):
+            HARDWARE.mmu.setPageFrame(page, pcb.pages[page])
         HARDWARE.timer.reset()
+        print("TLB: ", HARDWARE.mmu._tlb)
 
     def save(self, pcb):
         pcb.pc = HARDWARE.cpu.pc
@@ -269,8 +273,9 @@ class pid():
 # emulates a  pcb(creado por mi :S)
 class ProcessControlBlock():
 
-    def __init__(self, programName, baseDir = 0, limit = 0, priority = 0):
+    def __init__(self, programName, pages = [], baseDir = 0, limit = 0, priority = 0):
         self._pid = pid.new()
+        self._pages = pages 
         self._baseDir = baseDir
         self._limit = limit
         self._pc  = 0
