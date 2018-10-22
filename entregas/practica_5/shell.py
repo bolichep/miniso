@@ -53,9 +53,8 @@ class shell():
 
 
                     if comandos[0] == 'ls':
-                        for f , c in kernel.fileSystem.root:
-                            print("{:<8} {}".format(f, c))
-                            #print("{:<8} {}".format(f, kernel.fileSystem.root.get(f)))
+                        for f  in kernel.fileSystem.root:
+                            print("{:<8} {}".format(f, kernel.fileSystem.root.get(f)))
 
                         for f in shell.fs:
                             print("{:<8} {}".format(f, shell.fs.get(f)))

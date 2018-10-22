@@ -8,13 +8,8 @@ from enum import Enum
 ## emulates a compiled program
 class Program():
 
-    def __init__(self, name, instructions):
-        self._name = name
+    def __init__(self, instructions):
         self._instructions = self.expand(instructions)
-
-    @property
-    def name(self):
-        return self._name
 
     @property
     def instructions(self):
@@ -42,7 +37,7 @@ class Program():
         return expanded
 
     def __repr__(self):
-        return "Program({name}, {instructions})".format(name=self._name, instructions=self._instructions)
+        return "Program({instructions})".format(instructions=self._instructions)
 
 
 ## emulates an Input/Output device controller (driver)
@@ -144,11 +139,12 @@ class KillInterruptionHandler(AbstractInterruptionHandler):
 class NewInterruptionHandler(AbstractInterruptionHandler):
 
     def execute(self, irq):
-        (program, priority) = irq.parameters
+        (programName, programCode, priority) = irq.parameters
         priority = 4 if priority > 4 or priority < 0 else priority
-        log.logger.info("New loading {} {}".format(program, priority))
-        baseDir, limit = self.kernel.loader.load(program)
-        pcb = ProcessControlBlock(program, baseDir, limit, priority)
+        log.logger.info("New loading {} {}".format(programName, priority))
+        pages, baseDir, limit = self.kernel.loader.load(programName)
+        pcb = ProcessControlBlock(programName, baseDir, limit, priority)
+        pcb.pages = pages
         pcb.state = State.snew
         self.kernel.pcbTable.update(pcb) #add pcb
         # to ready or running
@@ -188,6 +184,9 @@ class TimeoutInterruptionHandler(AbstractInterruptionHandler):
 
 #emul dispacher
 class Dispacher():
+
+    def __init__(self):
+        HARDWARE.mmu.frameSize = 4
 
     def load(self, pcb):
         HARDWARE.cpu.pc = pcb.pc
@@ -270,13 +269,13 @@ class pid():
 # emulates a  pcb(creado por mi :S)
 class ProcessControlBlock():
 
-    def __init__(self, nameProgram, baseDir, limit, priority = 0):
+    def __init__(self, programName, baseDir = 0, limit = 0, priority = 0):
         self._pid = pid.new()
         self._baseDir = baseDir
         self._limit = limit
         self._pc  = 0
         self._state =State.snew
-        self._path = nameProgram
+        self._path = programName
         self._priority = priority 
 
     @property
@@ -299,9 +298,17 @@ class ProcessControlBlock():
     def baseDir(self):
         return self._baseDir
 
+    @baseDir.setter
+    def baseDir(self, value):
+        self._baseDir = value
+
     @property
     def limit(self):
         return self._limit
+
+    @baseDir.setter
+    def limit(self, value):
+       self._limit = value
 
     @property
     def pc(self):
@@ -325,8 +332,11 @@ class ProcessControlBlock():
 
 # emulates the loader program( prueba)
 class Loader():
-    def __init__(self):
+
+    def __init__(self, fileSystem, memoryManager):
         self._memoryPos = 0
+        self._fs = fileSystem
+        self._mm = memoryManager
 
     @property
     def memoryPos(self):
@@ -336,15 +346,20 @@ class Loader():
     def memoryPos(self, value):
         self._memoryPos = value
 
-    def load(self, program):
-        progSize = len(program.instructions)
+    def load(self, path):
+        programCode = self._fs.read(path)
+        progSize = len(programCode.instructions)
+        pages = self._mm.allocFrames(progSize)
+        if not pages:
+            raise Exception("No Hay memoria. [BSOD]... o demandá ;P")
+        
         baseDir = self.memoryPos
         for index in range(self.memoryPos , (progSize + self.memoryPos)):
-            inst = program.instructions[index - self.memoryPos]
-            HARDWARE.memory.put(index, inst)
+            inst = programCode.instructions[index - self.memoryPos]
+            self._mm.memory.put(index, inst)
 
         self.memoryPos = index + 1
-        return baseDir, progSize - 1 # limit = progSize - 1
+        return pages, baseDir, progSize - 1 # limit = progSize - 1
 
 
 class AbstractScheduler():
@@ -381,8 +396,6 @@ class SchedulerNonPreemtive(AbstractScheduler):
         self._cantE += 1
         if pcb.priority == 0 :
             self._readyQueue0.insert(0, pcb)
-        #elif self._shouldIAging():
-        #     self._aging()
         elif pcb.priority == 1 :
             self._readyQueue1.insert(0, pcb)
         elif pcb.priority == 2 :
@@ -392,7 +405,7 @@ class SchedulerNonPreemtive(AbstractScheduler):
         elif pcb.priority == 4 :
             self._readyQueue4.insert(0, pcb)
 
-    # prec hay al menos un pcb en el queue
+    # prec: hay al menos un pcb en el queue
     def getNext(self):
         self._cantE -= 1
         self._ageCount -= 1
@@ -521,6 +534,54 @@ class Gantt():
             log.logger.info(string)
   
 
+# file system basico
+class Fsb:
+
+    def __init__(self):
+        self._fs = dict()
+
+    @property
+    def root(self):
+        return self._fs
+
+    def write(self, fname, content):
+        self._fs.update({fname:content})
+
+    # denota una lista con el contenido del archivo fname
+    def read(self, fname):
+        return self._fs.get(fname)
+
+
+class MemoryManager:
+
+    def __init__(self, memory):
+        self._memory = memory
+        self._freeFrames = [0,1,2,3,4,5,6,7]
+
+
+    def allocFrames(self, numberOfCells):
+        framesToAlloc = 1 if numberOfCells % 4 else 0
+        framesToAlloc += numberOfCells // 4 ## 4 is hardcoded frameSize...(BAD)
+        print("allocFrame({})! framesToAlloc: {}".format(numberOfCells, framesToAlloc))
+        if framesToAlloc <= len(self._freeFrames):
+            go = self._freeFrames[0:framesToAlloc]
+            keep = self._freeFrames[framesToAlloc:]
+        else:
+            (go, keep) =([], self._freeFrames)
+
+        self._freeFrames = keep
+        print("go: ", go, "keep: ", keep )
+
+        return go
+
+    def freeFrames(self, frames):
+        self._freeFrames += frames
+
+    @property
+    def memory(self):
+        return self._memory
+
+
 # emulates the core of an Operative System
 class Kernel():
 
@@ -553,8 +614,13 @@ class Kernel():
         self._gantt_graphic = Gantt(self)
 
         self._scheduler = scheduler
-        self._loader = Loader()
+        self._fileSystem = Fsb()
+        self._memoryManager = MemoryManager(HARDWARE.memory)
+        self._loader = Loader(self._fileSystem, self._memoryManager)
 
+    @property
+    def fileSystem(self):
+        return self._fileSystem
 
     @property
     def loader(self):
@@ -577,11 +643,12 @@ class Kernel():
         return self._ioDeviceController
          
     ## emulates a "system call" for programs execution
-    def run(self, program, priority):
-        newINT = IRQ(NEW_INTERRUPTION_TYPE, (program, int(priority)))
+    def run(self, programName, priority):
+        programCode = self.fileSystem.read(programName) # read file
+        newINT = IRQ(NEW_INTERRUPTION_TYPE, (programName, programCode, int(priority)))
         #log.logger.info("Set New Int Handler")# ayuda visual
         HARDWARE.interruptVector.handle(newINT)
-        log.logger.info("\n Executing program: {name}".format(name=program.name))
+        log.logger.info("\n Executing program: {name}".format(name=programName))
         log.logger.info(HARDWARE)
 
     @property

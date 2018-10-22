@@ -13,8 +13,8 @@ if __name__ == '__main__':
     log.setupLogger()
     log.logger.info('Starting emulator')
 
-    ## setup our hardware and set memory size to 55 "cells"
-    HARDWARE.setup(55)
+    ## setup our hardware and set memory size to 32 "cells"
+    HARDWARE.setup(32)
 
     SCHEDULER_FCFS = 'FCFS'
     SCHEDULER_RR = 'RR'
@@ -65,7 +65,3 @@ if __name__ == '__main__':
     kernel.run("prg3.exe",2)
 
     shell.com(kernel)
-
-
-
-
