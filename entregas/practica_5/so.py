@@ -561,16 +561,12 @@ class MemoryManager:
 
     def allocFrames(self, numberOfCells):
         framesToAlloc = 1 if numberOfCells % 4 else 0
-        framesToAlloc += numberOfCells // 4 ## 4 is hardcoded frameSize...(BAD)
-        print("allocFrame({})! framesToAlloc: {}".format(numberOfCells, framesToAlloc))
+        framesToAlloc += numberOfCells // 4 ## 4 is hardcoded frameSize...(BAD) TODO
         if framesToAlloc <= len(self._freeFrames):
             go = self._freeFrames[0:framesToAlloc]
-            keep = self._freeFrames[framesToAlloc:]
+            self._freeFrames = self._freeFrames[framesToAlloc:]
         else:
-            (go, keep) =([], self._freeFrames)
-
-        self._freeFrames = keep
-        print("go: ", go, "keep: ", keep )
+            go = []
 
         return go
 
