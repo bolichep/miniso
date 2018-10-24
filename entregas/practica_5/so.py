@@ -358,10 +358,12 @@ class Loader():
         progSize = len(programCode.instructions)
         pages = self._mm.allocFrames(progSize)
         if not pages:
-            raise Exception("No Hay memoria. [BSOD]... o demandá ;P")
+            raise Exception("\x9B37;44m\x9B2J\x9B12;18HExceptiom: No Hay memoria. [BSOD]... o demandá ;P \x9B14;18H(!!!)\x9B0m")
         
         for instAddr in range(0, progSize):
-            physicalAddress = instAddr % self._mm._frameSize + pages[instAddr // self._mm._frameSize] * self._mm._frameSize ##TODO refactorizar eso
+            pageId = instAddr % self._mm._frameSize
+            offset = pages[instAddr // self._mm._frameSize]
+            physicalAddress = pageId + offset * self._mm._frameSize
             inst = programCode.instructions[instAddr]
             self._mm.memory.put(physicalAddress, inst)
             print(physicalAddress, inst)
@@ -563,28 +565,29 @@ class Fsb:
 
 class MemoryManager:
 
-    def __init__(self, memory):
+    def __init__(self, memory, frameSize):
         self._memory = memory
         self._freeFrames = [0,1,2,3,4,5,6,7]
-        self._frameSize = HARDWARE.mmu.frameSize
+        self._frameSize = frameSize
 
 
     def allocFrames(self, numberOfCells):
         framesToAlloc = 1 if numberOfCells % self._frameSize else 0
         framesToAlloc += numberOfCells // self._frameSize
         if framesToAlloc <= len(self._freeFrames):
-            go = self._freeFrames[0:framesToAlloc]
+            allocatedFrames = self._freeFrames[0:framesToAlloc]
             self._freeFrames = self._freeFrames[framesToAlloc:]
         else:
-            go = []
-
-        print("FrameSize: ", self._frameSize)
-        print("Allocating: ", self._freeFrames)
-        return go
+            allocatedFrames = []
+        print("Allocating: ", allocatedFrames, 
+              "Frees: ",  self._freeFrames,
+              "FrameSize: ", self._frameSize)
+        return allocatedFrames
 
     def freeFrames(self, frames):
+        print("Freeing: ", frames, "Prev Frees: ", self._freeFrames)
         self._freeFrames += frames
-        print("Freeing: ", self._freeFrames)
+        print("Current Frees: ", self._freeFrames)
 
     @property
     def memory(self):
@@ -625,8 +628,10 @@ class Kernel():
 
         self._scheduler = scheduler
         self._fileSystem = Fsb()
+
         HARDWARE.mmu.frameSize = frameSize
-        self._memoryManager = MemoryManager(HARDWARE.memory)
+        self._memoryManager = MemoryManager(HARDWARE.memory, HARDWARE.mmu.frameSize)
+
         self._loader = Loader(self._fileSystem, self._memoryManager)
 
     @property
