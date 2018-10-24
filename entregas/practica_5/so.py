@@ -361,7 +361,7 @@ class Loader():
             raise Exception("No Hay memoria. [BSOD]... o demandá ;P")
         
         for instAddr in range(0, progSize):
-            physicalAddress = instAddr % 4 + pages[instAddr // 4] * 4
+            physicalAddress = instAddr % self._mm._frameSize + pages[instAddr // self._mm._frameSize] * self._mm._frameSize ##TODO refactorizar eso
             inst = programCode.instructions[instAddr]
             self._mm.memory.put(physicalAddress, inst)
             print(physicalAddress, inst)
@@ -566,17 +566,19 @@ class MemoryManager:
     def __init__(self, memory):
         self._memory = memory
         self._freeFrames = [0,1,2,3,4,5,6,7]
+        self._frameSize = HARDWARE.mmu.frameSize
 
 
     def allocFrames(self, numberOfCells):
-        framesToAlloc = 1 if numberOfCells % 4 else 0
-        framesToAlloc += numberOfCells // 4 ## 4 is hardcoded frameSize...(BAD) TODO
+        framesToAlloc = 1 if numberOfCells % self._frameSize else 0
+        framesToAlloc += numberOfCells // self._frameSize
         if framesToAlloc <= len(self._freeFrames):
             go = self._freeFrames[0:framesToAlloc]
             self._freeFrames = self._freeFrames[framesToAlloc:]
         else:
             go = []
 
+        print("FrameSize: ", self._frameSize)
         print("Allocating: ", self._freeFrames)
         return go
 
@@ -592,7 +594,7 @@ class MemoryManager:
 # emulates the core of an Operative System
 class Kernel():
 
-    def __init__(self, scheduler):
+    def __init__(self, scheduler, frameSize):
 
 
         ## setup interruption handlers
@@ -611,6 +613,7 @@ class Kernel():
         timeoutHandler = TimeoutInterruptionHandler(self)
         HARDWARE.interruptVector.register(TIMEOUT_INTERRUPTION_TYPE, timeoutHandler)
 
+
         ## controls the Hardware's I/O Device
         self._ioDeviceController = IoDeviceController(HARDWARE.ioDevice)
 
@@ -622,6 +625,7 @@ class Kernel():
 
         self._scheduler = scheduler
         self._fileSystem = Fsb()
+        HARDWARE.mmu.frameSize = frameSize
         self._memoryManager = MemoryManager(HARDWARE.memory)
         self._loader = Loader(self._fileSystem, self._memoryManager)
 
