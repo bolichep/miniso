@@ -52,7 +52,7 @@ if __name__ == '__main__':
     # Ahora vamos a intentar ejecutar 3 programas a la vez
     ##################
     prg1 = Program([ASM.CPU(2), ASM.IO(), ASM.CPU(3), ASM.IO(), ASM.CPU(2)])   
-    prg2 = Program([ASM.CPU(7)])
+    prg2 = Program([ASM.AI1(3), ASM.CPU(4)])
     prg3 = Program([ASM.CPU(4), ASM.IO(), ASM.CPU(1)]) 
 
     kernel.fileSystem.write("prg1.exe", prg1)
@@ -63,9 +63,9 @@ if __name__ == '__main__':
     kernel.run("prg2.exe",0)
     kernel.run("prg3.exe",0)
     #kernel.run("prg3.exe",2)
-    sleep(32)
-    kernel.run("prg1.exe",1)
-    kernel.run("prg2.exe",0)
-    kernel.run("prg3.exe",0)
+    #sleep(32)
+    #kernel.run("prg1.exe",1)
+    #kernel.run("prg2.exe",0)
+    #kernel.run("prg3.exe",0)
 
     shell.com(kernel)

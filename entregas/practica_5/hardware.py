@@ -8,11 +8,21 @@ import log
 ##  Estas son la instrucciones soportadas por nuestro CPU
 INSTRUCTION_IO = 'IO'
 INSTRUCTION_CPU = 'CPU'
+INSTRUCTION_AI1 = 'AI1'
+INSTRUCTION_AD1 = 'AD1'
 INSTRUCTION_EXIT = 'EXIT'
 
 
 ## Helper for emulated machine code
 class ASM():
+
+    @classmethod
+    def AD1(self, times):
+        return [INSTRUCTION_AD1] * times
+
+    @classmethod
+    def AI1(self, times):
+        return [INSTRUCTION_AI1] * times
 
     @classmethod
     def EXIT(self, times):
@@ -189,7 +199,6 @@ class MMU():
         return self._memory.get(physicalAddress)
 
 
-
 ## emulates the main Central Processor Unit
 class Cpu():
 
@@ -198,7 +207,7 @@ class Cpu():
         self._interruptVector = interruptVector
         self._pc = -1
         self._ir = None
-
+        self._ac = 0
 
     def tick(self, tickNbr):
         if (self._pc > -1):
@@ -214,6 +223,17 @@ class Cpu():
         self._pc += 1
 
     def _decode(self):
+        if self._ir == 'CPU':
+            print("CPU Instruction")
+            print("A Reg: ", self._ac)
+
+        if self._ir == 'AD1':
+            print("AD1 Instruction")
+            self._ac -= 1
+
+        if self._ir == 'AI1':
+            print("AI1 Instruction")
+            self._ac += 1
         ## decode no hace nada en este caso
         pass
 
