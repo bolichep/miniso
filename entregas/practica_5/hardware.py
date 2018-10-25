@@ -111,7 +111,7 @@ class Clock():
         for subscriber in self._subscribers:
             subscriber.tick(tickNbr)
         ## wait 1 second and keep looping
-        sleep(1)
+        sleep(0.5)
 
     def do_ticks(self, times):
         log.logger.info("---- :::: CLOCK do_ticks: {times} ::: -----".format(times=times))
