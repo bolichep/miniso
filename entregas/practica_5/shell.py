@@ -68,7 +68,9 @@ class shell():
                         print(_code)
 
                     if comandos[0] == 'run':
-                        kernel.run(Program(_name, [_code.split(",")]), 3 if len(comandos) < 2 else comandos[1])
+                        kernel.fileSystem.write(_name,
+                                Program([_code.split(",")]) )
+                        kernel.run(_name, 3 if len(comandos) < 2 else int(comandos[1]))
 
                     if comandos[0] == 'loaderreset':
                         kernel.loader.memoryPos = 0
