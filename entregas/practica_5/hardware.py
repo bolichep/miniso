@@ -124,6 +124,7 @@ class Clock():
 class Memory():
 
     def __init__(self, size):
+        self._size = size
         self._cells = [''] * size
 
     def put(self, addr, value):
@@ -134,6 +135,9 @@ class Memory():
 
     def __repr__(self):
         return tabulate(enumerate(self._cells), tablefmt='psql')
+
+    def getLeng(self) :
+        return  self._size
         ## return "Memoria = {mem}".format(mem=self._cells)
 
 ## emulates the Memory Management Unit (MMU)
@@ -187,6 +191,7 @@ class MMU():
 
         # obtenemos la instrucción alocada en esa direccion
         return self._memory.get(physicalAddress)
+
 
 
 

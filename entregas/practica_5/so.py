@@ -187,9 +187,6 @@ class TimeoutInterruptionHandler(AbstractInterruptionHandler):
 #emul dispacher
 class Dispacher():
 
-    def __init__(self):
-        HARDWARE.mmu.frameSize = 4
-
     def load(self, pcb):
         HARDWARE.cpu.pc = pcb.pc
         HARDWARE.mmu.baseDir = pcb.baseDir
@@ -567,9 +564,9 @@ class MemoryManager:
 
     def __init__(self, memory, frameSize):
         self._memory = memory
-        self._freeFrames = [0,1,2,3,4,5,6,7]
+        tam= (memory.getLeng() // frameSize) +1
+        self._freeFrames = [x for x in range (0,tam) ]
         self._frameSize = frameSize
-
 
     def allocFrames(self, numberOfCells):
         framesToAlloc = 1 if numberOfCells % self._frameSize else 0
@@ -588,6 +585,7 @@ class MemoryManager:
         print("Freeing: ", frames, "Prev Frees: ", self._freeFrames)
         self._freeFrames += frames
         print("Current Frees: ", self._freeFrames)
+     
 
     @property
     def memory(self):
