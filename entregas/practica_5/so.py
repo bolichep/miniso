@@ -187,9 +187,6 @@ class TimeoutInterruptionHandler(AbstractInterruptionHandler):
 #emul dispacher
 class Dispacher():
 
-    def __init__(self):
-        HARDWARE.mmu.frameSize = 4
-
     def load(self, pcb):
         HARDWARE.cpu.pc = pcb.pc
         HARDWARE.mmu.baseDir = pcb.baseDir
@@ -365,8 +362,8 @@ class Loader():
             offset = pages[instAddr // self._mm._frameSize]
             physicalAddress = pageId + offset * self._mm._frameSize
             inst = programCode.instructions[instAddr]
+            print("La direccion fisica es ", physicalAddress, inst)
             self._mm.memory.put(physicalAddress, inst)
-            print(physicalAddress, inst)
 
         # TODO eliminar baseDir
         baseDir = 0
@@ -597,28 +594,29 @@ class MemoryManager:
 # emulates the core of an Operative System
 class Kernel():
 
-    def __init__(self, scheduler, frameSize):
+    def __init__(self, hardware,scheduler, frameSize):
 
 
+        self._hardware = hardware
         ## setup interruption handlers
         newHandler = NewInterruptionHandler(self)
-        HARDWARE.interruptVector.register(NEW_INTERRUPTION_TYPE, newHandler)
+        self._hardware.interruptVector.register(NEW_INTERRUPTION_TYPE, newHandler)
 
         killHandler = KillInterruptionHandler(self)
-        HARDWARE.interruptVector.register(KILL_INTERRUPTION_TYPE, killHandler)
+        self._hardware.interruptVector.register(KILL_INTERRUPTION_TYPE, killHandler)
 
         ioInHandler = IoInInterruptionHandler(self)
-        HARDWARE.interruptVector.register(IO_IN_INTERRUPTION_TYPE, ioInHandler)
+        self._hardware.interruptVector.register(IO_IN_INTERRUPTION_TYPE, ioInHandler)
 
         ioOutHandler = IoOutInterruptionHandler(self)
-        HARDWARE.interruptVector.register(IO_OUT_INTERRUPTION_TYPE, ioOutHandler)
+        self._hardware.interruptVector.register(IO_OUT_INTERRUPTION_TYPE, ioOutHandler)
 
         timeoutHandler = TimeoutInterruptionHandler(self)
-        HARDWARE.interruptVector.register(TIMEOUT_INTERRUPTION_TYPE, timeoutHandler)
+        self._hardware.interruptVector.register(TIMEOUT_INTERRUPTION_TYPE, timeoutHandler)
 
 
         ## controls the Hardware's I/O Device
-        self._ioDeviceController = IoDeviceController(HARDWARE.ioDevice)
+        self._ioDeviceController = IoDeviceController(self._hardware.ioDevice)
 
 
         self._pcbTable = PcbTable()
@@ -629,8 +627,8 @@ class Kernel():
         self._scheduler = scheduler
         self._fileSystem = Fsb()
 
-        HARDWARE.mmu.frameSize = frameSize
-        self._memoryManager = MemoryManager(HARDWARE.memory, HARDWARE.mmu.frameSize)
+        self._hardware.mmu.frameSize = frameSize
+        self._memoryManager = MemoryManager(self._hardware.memory, self._hardware.mmu.frameSize)
 
         self._loader = Loader(self._fileSystem, self._memoryManager)
 
@@ -663,9 +661,9 @@ class Kernel():
         programCode = self.fileSystem.read(programName) # read file
         newINT = IRQ(NEW_INTERRUPTION_TYPE, (programName, programCode, priority))
         #log.logger.info("Set New Int Handler")# ayuda visual
-        HARDWARE.interruptVector.handle(newINT)
+        self._hardware.interruptVector.handle(newINT)
         log.logger.info("\n Executing program: {name}".format(name=programName))
-        log.logger.info(HARDWARE)
+        log.logger.info(self._hardware)
 
     @property
     def scheduler(self):
