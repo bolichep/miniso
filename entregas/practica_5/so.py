@@ -362,8 +362,8 @@ class Loader():
             offset = pages[instAddr // self._mm._frameSize]
             physicalAddress = pageId + offset * self._mm._frameSize
             inst = programCode.instructions[instAddr]
-            print("La direccion fisica es ", physicalAddress, inst)
             self._mm.memory.put(physicalAddress, inst)
+            print(physicalAddress, inst)
 
         # TODO eliminar baseDir
         baseDir = 0
