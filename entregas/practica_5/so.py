@@ -141,11 +141,11 @@ class KillInterruptionHandler(AbstractInterruptionHandler):
 class NewInterruptionHandler(AbstractInterruptionHandler):
 
     def execute(self, irq):
-        (programName, programCode, priority) = irq.parameters
+        programName, programCode, priority = irq.parameters
         priority = 4 if priority > 4 or priority < 0 else priority
         log.logger.info("New loading {} {}".format(programName, priority))
         pages, baseDir, limit = self.kernel.loader.load(programName)
-        pcb = ProcessControlBlock(programName, baseDir, limit, priority)
+        pcb = ProcessControlBlock(programName, priority, baseDir, limit)
         pcb.pages = pages
         pcb.state = State.snew
         self.kernel.pcbTable.update(pcb) #add pcb
@@ -198,7 +198,7 @@ class Dispacher():
         for page in range(0, len(pcb.pages)):
             HARDWARE.mmu.setPageFrame(page, pcb.pages[page])
         HARDWARE.timer.reset()
-        print("TLB: ", HARDWARE.mmu._tlb)
+        print("pid: ", pcb.pid, "prio: ", pcb.priority, "TLB: ", HARDWARE.mmu._tlb)
 
     def save(self, pcb):
         pcb.pc = HARDWARE.cpu.pc
@@ -275,7 +275,7 @@ class pid():
 # emulates a  pcb(creado por mi :S)
 class ProcessControlBlock():
 
-    def __init__(self, programName, pages = [], baseDir = 0, limit = 0, priority = 0):
+    def __init__(self, programName, priority, pages = [], baseDir = 0, limit = 0):
         self._pid = pid.new()
         self._pages = pages 
         self._baseDir = baseDir
@@ -661,7 +661,7 @@ class Kernel():
     ## emulates a "system call" for programs execution
     def run(self, programName, priority):
         programCode = self.fileSystem.read(programName) # read file
-        newINT = IRQ(NEW_INTERRUPTION_TYPE, (programName, programCode, int(priority)))
+        newINT = IRQ(NEW_INTERRUPTION_TYPE, (programName, programCode, priority))
         #log.logger.info("Set New Int Handler")# ayuda visual
         HARDWARE.interruptVector.handle(newINT)
         log.logger.info("\n Executing program: {name}".format(name=programName))
