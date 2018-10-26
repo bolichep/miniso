@@ -135,7 +135,9 @@ class KillInterruptionHandler(AbstractInterruptionHandler):
         log.logger.info(" Program Finished ")
         pcb = self.kernel.pcbTable.runningPCB 
         self.contextSwitchFromRunningTo(State.sterminated)
-        self.kernel._memoryManager.freeFrames(pcb.pages)
+        pages= self.kernel.memoryManager.getPageTable(pcb.pid)
+
+        self.kernel._memoryManager.freeFrames(pages)
 
 
 class NewInterruptionHandler(AbstractInterruptionHandler):
@@ -146,8 +148,9 @@ class NewInterruptionHandler(AbstractInterruptionHandler):
         log.logger.info("New loading {} {}".format(programName, priority))
         pages, baseDir, limit = self.kernel.loader.load(programName)
         pcb = ProcessControlBlock(programName, priority, baseDir, limit)
-        pcb.pages = pages
         pcb.state = State.snew
+        #pcb.pages = pages
+        self.kernel.memoryManager.putPageTable(pcb.pid, pages)
         self.kernel.pcbTable.update(pcb) #add pcb
         # to ready or running
         self.contextSwitchToReadyOrRunning(pcb, expropiate = False)
@@ -186,17 +189,18 @@ class TimeoutInterruptionHandler(AbstractInterruptionHandler):
 
 #emul dispacher
 class Dispacher():
-
-    def __init__(self):
-        HARDWARE.mmu.frameSize = 4
+    def __init__(self, kernel):
+        self._kernel = kernel
 
     def load(self, pcb):
         HARDWARE.cpu.pc = pcb.pc
         HARDWARE.mmu.baseDir = pcb.baseDir
         HARDWARE.mmu.limit = pcb.limit
         HARDWARE.mmu.resetTLB()
-        for page in range(0, len(pcb.pages)):
-            HARDWARE.mmu.setPageFrame(page, pcb.pages[page])
+        pages = self._kernel.memoryManager.getPageTable(pcb.pid)
+        #pages = pcb.pages
+        for page in range(0, len(pages)):
+            HARDWARE.mmu.setPageFrame(page, pages[page])
         HARDWARE.timer.reset()
         print("pid: ", pcb.pid, "prio: ", pcb.priority, "TLB: ", HARDWARE.mmu._tlb)
 
@@ -277,7 +281,6 @@ class ProcessControlBlock():
 
     def __init__(self, programName, priority, pages = [], baseDir = 0, limit = 0):
         self._pid = pid.new()
-        self._pages = pages 
         self._baseDir = baseDir
         self._limit = limit
         self._pc  = 0
@@ -566,10 +569,10 @@ class Fsb:
 class MemoryManager:
 
     def __init__(self, memory, frameSize):
-        self._memory = memory
-        self._freeFrames = [0,1,2,3,4,5,6,7]
+        self._memory = memory       
+        self._freeFrames = [x for x in range (0,(memory.getLeng() // frameSize)) ]
         self._frameSize = frameSize
-
+        self._pageTables = dict()
 
     def allocFrames(self, numberOfCells):
         framesToAlloc = 1 if numberOfCells % self._frameSize else 0
@@ -588,6 +591,13 @@ class MemoryManager:
         print("Freeing: ", frames, "Prev Frees: ", self._freeFrames)
         self._freeFrames += frames
         print("Current Frees: ", self._freeFrames)
+     
+    def putPageTable(self, pid, pages):
+        self._pageTables.update({pid: pages})
+
+    def getPageTable(self, pid):
+        return self._pageTables.get(pid)
+  
 
     @property
     def memory(self):
@@ -597,40 +607,41 @@ class MemoryManager:
 # emulates the core of an Operative System
 class Kernel():
 
-    def __init__(self, scheduler, frameSize):
+    def __init__(self, hardware,scheduler, frameSize):
 
 
+        self._hardware = hardware
         ## setup interruption handlers
         newHandler = NewInterruptionHandler(self)
-        HARDWARE.interruptVector.register(NEW_INTERRUPTION_TYPE, newHandler)
+        self._hardware.interruptVector.register(NEW_INTERRUPTION_TYPE, newHandler)
 
         killHandler = KillInterruptionHandler(self)
-        HARDWARE.interruptVector.register(KILL_INTERRUPTION_TYPE, killHandler)
+        self._hardware.interruptVector.register(KILL_INTERRUPTION_TYPE, killHandler)
 
         ioInHandler = IoInInterruptionHandler(self)
-        HARDWARE.interruptVector.register(IO_IN_INTERRUPTION_TYPE, ioInHandler)
+        self._hardware.interruptVector.register(IO_IN_INTERRUPTION_TYPE, ioInHandler)
 
         ioOutHandler = IoOutInterruptionHandler(self)
-        HARDWARE.interruptVector.register(IO_OUT_INTERRUPTION_TYPE, ioOutHandler)
+        self._hardware.interruptVector.register(IO_OUT_INTERRUPTION_TYPE, ioOutHandler)
 
         timeoutHandler = TimeoutInterruptionHandler(self)
-        HARDWARE.interruptVector.register(TIMEOUT_INTERRUPTION_TYPE, timeoutHandler)
+        self._hardware.interruptVector.register(TIMEOUT_INTERRUPTION_TYPE, timeoutHandler)
 
 
         ## controls the Hardware's I/O Device
-        self._ioDeviceController = IoDeviceController(HARDWARE.ioDevice)
+        self._ioDeviceController = IoDeviceController(self._hardware.ioDevice)
 
 
         self._pcbTable = PcbTable()
-        self._dispacher = Dispacher()
+        self._dispacher = Dispacher(self)
 
         self._gantt_graphic = Gantt(self)
 
         self._scheduler = scheduler
         self._fileSystem = Fsb()
 
-        HARDWARE.mmu.frameSize = frameSize
-        self._memoryManager = MemoryManager(HARDWARE.memory, HARDWARE.mmu.frameSize)
+        self._hardware.mmu.frameSize = frameSize
+        self._memoryManager = MemoryManager(self._hardware.memory, self._hardware.mmu.frameSize)
 
         self._loader = Loader(self._fileSystem, self._memoryManager)
 
@@ -663,10 +674,14 @@ class Kernel():
         programCode = self.fileSystem.read(programName) # read file
         newINT = IRQ(NEW_INTERRUPTION_TYPE, (programName, programCode, priority))
         #log.logger.info("Set New Int Handler")# ayuda visual
-        HARDWARE.interruptVector.handle(newINT)
+        self._hardware.interruptVector.handle(newINT)
         log.logger.info("\n Executing program: {name}".format(name=programName))
-        log.logger.info(HARDWARE)
+        log.logger.info(self._hardware)
 
+    @property
+    def memoryManager(self):
+        return self._memoryManager
+    
     @property
     def scheduler(self):
         return self._scheduler

@@ -121,7 +121,7 @@ class Clock():
         for subscriber in self._subscribers:
             subscriber.tick(tickNbr)
         ## wait 1 second and keep looping
-        sleep(1)
+        sleep(0.5)
 
     def do_ticks(self, times):
         log.logger.info("---- :::: CLOCK do_ticks: {times} ::: -----".format(times=times))
@@ -134,6 +134,7 @@ class Clock():
 class Memory():
 
     def __init__(self, size):
+        self._size = size
         self._cells = [''] * size
 
     def put(self, addr, value):
@@ -144,6 +145,9 @@ class Memory():
 
     def __repr__(self):
         return tabulate(enumerate(self._cells), tablefmt='psql')
+
+    def getLeng(self) :
+        return  self._size
         ## return "Memoria = {mem}".format(mem=self._cells)
 
 ## emulates the Memory Management Unit (MMU)
