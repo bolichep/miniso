@@ -200,7 +200,8 @@ class Dispacher():
         self._kernel = kernel
 
     def load(self, pcb):
-        HARDWARE.cpu.pc = pcb.pc
+        #HARDWARE.cpu.pc = pcb.pc
+        HARDWARE.cpu.context = pcb.context #all reg in a big tuple
         HARDWARE.mmu.baseDir = pcb.baseDir
         HARDWARE.mmu.limit = pcb.limit
         HARDWARE.mmu.resetTLB()
@@ -212,7 +213,8 @@ class Dispacher():
         print("pid: ", pcb.pid, "prio: ", pcb.priority, "TLB: ", HARDWARE.mmu._tlb)
 
     def save(self, pcb):
-        pcb.pc = HARDWARE.cpu.pc
+        pcb.context = HARDWARE.cpu.context # all regs in a big tuple
+        #pcb.pc = HARDWARE.cpu.pc
         HARDWARE.cpu.pc = -1
 
     def resetTimer(self):
@@ -292,9 +294,19 @@ class ProcessControlBlock():
         self._limit = limit
         self._pc  = 0
         self._state =State.snew
+        # well knew cpu reset state
+        self._context = (0, 0, True) # keep sync with hardware#280
         self._path = programName
         self._priority = priority 
 
+    @property
+    def context(self):
+        return self._context
+
+    @context.setter
+    def context(self, value):
+        self._context = value
+            
     @property
     def priority(self):
         return self._priority
@@ -368,7 +380,7 @@ class Loader():
         progSize = len(programCode.instructions)
         pages = self._mm.allocFrames(progSize)
         if not pages:
-            raise Exception("\x9B37;44m\x9B2J\x9B12;18HExceptiom: No Hay memoria. [BSOD]... o demandá ;P \x9B14;18H(!!!)\x9B0m")
+            raise Exception("\x9B37;44m\x9B2J\x9B12;18HException: No Hay memoria. [BSOD]... o demandá ;P \x9B14;18H(!!!)\x9B0m")
         
         for instAddr in range(0, progSize):
             pageId = instAddr % self._mm._frameSize
@@ -542,7 +554,7 @@ class Gantt():
                 self._graph[pcb.pid] = "{}   {}    {}".format(pcb.pid, pcb.priority, " " * self._ticks)
 
             if pcb.state == State.srunning:
-                self._graph[pcb.pid] += "R"
+                self._graph[pcb.pid] += "\x9B7mR\x9B0m"
             elif pcb.state == State.sready:
                 self._graph[pcb.pid] += "r"
             elif pcb.state == State.swaiting:

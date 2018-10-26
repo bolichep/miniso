@@ -236,10 +236,14 @@ class Cpu():
         if self._ir == 'IO':
             print("IO Instruction")
 
-        if self._ir == 'CPU':
-            print("CPU Instruction")
+        if self._ir == 'EXIT':
+            print("\x9B7m", end="")
             print("A Reg : ", self._ac)
             print("z flag: ", self._zf)
+            print("\x9B0m", end="")
+
+        if self._ir == 'CPU':
+            print("CPU Instruction")
 
         if self._ir == 'AD1':
             print("AD1 Instruction")
@@ -272,6 +276,14 @@ class Cpu():
 
     def isBusy(self):
         return self._pc != -1
+
+    @property
+    def context(self):
+        return (self._pc, self._ac, self._zf) # keep sync with so#297
+
+    @context.setter
+    def context(self, values):
+        (self._pc, self._ac, self._zf) = values
 
     @property
     def pc(self):

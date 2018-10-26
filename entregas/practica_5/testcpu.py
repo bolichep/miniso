@@ -63,5 +63,6 @@ if __name__ == '__main__':
         ])   
     kernel.fileSystem.write("asmcode", prg1)
     kernel.run("asmcode",1)
+    kernel.run("asmcode",1)
 
     shell.com(kernel)
