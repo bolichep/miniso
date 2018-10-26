@@ -10,6 +10,7 @@ INSTRUCTION_IO = 'IO'
 INSTRUCTION_CPU = 'CPU'
 INSTRUCTION_AI1 = 'AI1'
 INSTRUCTION_AD1 = 'AD1'
+INSTRUCTION_JZ = 'JZ'
 INSTRUCTION_EXIT = 'EXIT'
 
 
@@ -23,6 +24,10 @@ class ASM():
     @classmethod
     def AI1(self, times):
         return [INSTRUCTION_AI1] * times
+
+    @classmethod
+    def JZ(self, direccion):
+        return [INSTRUCTION_JZ, str(direccion)]
 
     @classmethod
     def EXIT(self, times):
@@ -212,6 +217,7 @@ class Cpu():
         self._pc = -1
         self._ir = None
         self._ac = 0
+        self._zf = True
 
     def tick(self, tickNbr):
         if (self._pc > -1):
@@ -227,18 +233,30 @@ class Cpu():
         self._pc += 1
 
     def _decode(self):
+        if self._ir == 'IO':
+            print("IO Instruction")
+
         if self._ir == 'CPU':
             print("CPU Instruction")
-            print("A Reg: ", self._ac)
+            print("A Reg : ", self._ac)
+            print("z flag: ", self._zf)
 
         if self._ir == 'AD1':
             print("AD1 Instruction")
             self._ac -= 1
+            
 
         if self._ir == 'AI1':
             print("AI1 Instruction")
             self._ac += 1
-        ## decode no hace nada en este caso
+            
+        if self._ir == 'JZ':
+            print("JZ Instruction")
+            self._fetch()
+            if self._zf:
+                self._pc += int(self._ir)
+
+        self._zf = (self._ac == 0)
         pass
 
     def _execute(self):
