@@ -105,7 +105,7 @@ class AbstractInterruptionHandler():
             self.kernel.dispacher.load(nextPCB)
         return prevPCB
 
-    def contextSwitchToReadyOrRunning(self, nextPCB, expropiate):
+    def contextSwitchToReadyOrRunning(self, nextPCB):
         if self.kernel.pcbTable.runningPCB == None:
             self.kernel.dispacher.load(nextPCB)
             nextPCB.state = State.srunning
@@ -113,7 +113,7 @@ class AbstractInterruptionHandler():
         else:
             nextPCB.state = State.sready
             prevPCB = self.kernel.pcbTable.runningPCB
-            if  self.kernel.scheduler.isPreemtive(prevPCB, nextPCB, expropiate):
+            if  self.kernel.scheduler.isPreemtive(prevPCB, nextPCB):
                 self.contextSwapPreemtive(nextPCB, prevPCB)
                 nextPCB.state = State.srunning
             else : 
@@ -127,6 +127,13 @@ class AbstractInterruptionHandler():
         self.kernel.pcbTable.update(prevPCB)
         self.kernel.dispacher.load(nextPCB)
         self.kernel.scheduler.add(prevPCB)
+
+    def contextSwapPreemtiveTimeOut(self, nextPCB):
+        nextPCB.state = State.sready
+        prevPCB = self._kernel.pcbTable.runningPCB
+        self.contextSwapPreemtive(nextPCB, prevPCB)
+        nextPCB.state = State.srunning
+        self.kernel.pcbTable.update(nextPCB)
 
 
 class KillInterruptionHandler(AbstractInterruptionHandler):
@@ -153,7 +160,7 @@ class NewInterruptionHandler(AbstractInterruptionHandler):
         self.kernel.memoryManager.putPageTable(pcb.pid, pages)
         self.kernel.pcbTable.update(pcb) #add pcb
         # to ready or running
-        self.contextSwitchToReadyOrRunning(pcb, expropiate = False)
+        self.contextSwitchToReadyOrRunning(pcb)
         
 
 class IoInInterruptionHandler(AbstractInterruptionHandler):
@@ -172,7 +179,7 @@ class IoOutInterruptionHandler(AbstractInterruptionHandler):
         pcb.state = State.sready
         self.kernel.pcbTable.update(pcb) #update pcb
         # to ready or running
-        self.contextSwitchToReadyOrRunning(pcb, False)
+        self.contextSwitchToReadyOrRunning(pcb)
         log.logger.info(self.kernel.ioDeviceController)
 
 
@@ -182,7 +189,7 @@ class TimeoutInterruptionHandler(AbstractInterruptionHandler):
         
         if self.kernel.scheduler.hasNext():
             pcb = self.kernel.scheduler.getNext()
-            self.contextSwitchToReadyOrRunning(pcb, True)
+            self.contextSwapPreemtiveTimeOut(pcb)
         else:
             self.kernel.dispacher.resetTimer()
 
@@ -457,7 +464,7 @@ class SchedulerNonPreemtive(AbstractScheduler):
     def hasNext(self):
         return self._cantE > 0
 
-    def isPreemtive(self, pcb1, pcb2, expropiate):
+    def isPreemtive(self, pcb1, pcb2):
         return False        
 
     def __repr__(self):
@@ -477,7 +484,7 @@ class SchedulerPreemtive(SchedulerNonPreemtive):
         super().__init__()
         self._name = "Preemtive"
 
-    def isPreemtive (self, pcbrunning, pcbready, expropiate):
+    def isPreemtive (self, pcbrunning, pcbready):
         return pcbrunning.priority > pcbready.priority
   
 class SchedulerFCFS(AbstractScheduler):
@@ -495,7 +502,7 @@ class SchedulerFCFS(AbstractScheduler):
     def hasNext(self):
         return  self._readyQueue
 
-    def isPreemtive(self, pcb1, pcb2, expropiate):
+    def isPreemtive(self, pcb1, pcb2):
         return False
 
 class SchedulerRRB(AbstractScheduler):
@@ -513,8 +520,8 @@ class SchedulerRRB(AbstractScheduler):
     def hasNext(self):
         return self._readyQueue
 
-    def isPreemtive(self, pcb1, pcb2, expropiate = True):
-        return expropiate
+    def isPreemtive(self, pcb1, pcb2):
+        return False
 
 class Gantt():
 
