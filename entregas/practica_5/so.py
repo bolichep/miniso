@@ -113,7 +113,7 @@ class AbstractInterruptionHandler():
         else:
             nextPCB.state = State.sready
             prevPCB = self.kernel.pcbTable.runningPCB
-            if  self.kernel.scheduler.isPreemtive(prevPCB, nextPCB):
+            if  self.kernel.scheduler.mustExpropiate(prevPCB, nextPCB):
                 self.contextSwapPreemtive(nextPCB, prevPCB)
                 nextPCB.state = State.srunning
             else : 
@@ -476,7 +476,7 @@ class SchedulerNonPreemtive(AbstractScheduler):
     def hasNext(self):
         return self._cantE > 0
 
-    def isPreemtive(self, pcb1, pcb2):
+    def mustExpropiate(self, pcb1, pcb2):
         return False        
 
     def __repr__(self):
@@ -496,7 +496,7 @@ class SchedulerPreemtive(SchedulerNonPreemtive):
         super().__init__()
         self._name = "Preemtive"
 
-    def isPreemtive (self, pcbrunning, pcbready):
+    def mustExpropiate (self, pcbrunning, pcbready):
         return pcbrunning.priority > pcbready.priority
   
 class SchedulerFCFS(AbstractScheduler):
@@ -514,7 +514,7 @@ class SchedulerFCFS(AbstractScheduler):
     def hasNext(self):
         return  self._readyQueue
 
-    def isPreemtive(self, pcb1, pcb2):
+    def mustExpropiate(self, pcb1, pcb2):
         return False
 
 class SchedulerRRB(AbstractScheduler):
@@ -532,7 +532,7 @@ class SchedulerRRB(AbstractScheduler):
     def hasNext(self):
         return self._readyQueue
 
-    def isPreemtive(self, pcb1, pcb2):
+    def mustExpropiate(self, pcb1, pcb2):
         return False
 
 class Gantt():
