@@ -361,7 +361,7 @@ class Cpu():
 
         if self._ir == 'JZ':
             self._fetch()
-            print("JZ {} Instruction".format(self._ir))
+            print("JZ {} Instruction zf={}".format(self._ir, self._zf))
             if self._zf:
                 self._pc += int(self._ir)
 
