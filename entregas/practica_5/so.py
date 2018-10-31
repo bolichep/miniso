@@ -292,10 +292,10 @@ class ProcessControlBlock():
         self._pid = pid.new()
         self._baseDir = baseDir
         self._limit = limit
-        self._pc  = 0
+        self._pc  = 0 # TODO check if keep that
         self._state =State.snew
         # well knew cpu reset state
-        self._context = (0, 0, True) # keep sync with hardware#280
+        self._context = (0, 0, 0, -1, True) # keep sync with hardware#330
         self._path = programName
         self._priority = priority 
 
