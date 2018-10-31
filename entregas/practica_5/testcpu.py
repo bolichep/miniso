@@ -51,16 +51,31 @@ if __name__ == '__main__':
 
     # Ahora vamos a intentar ejecutar 3 programas a la vez
     ##################
+    """
     prg1 = Program([
+        ASM.HEADER(10),
         ASM.CPU(1), #0
-        ASM.AI1(1), #2
         ASM.CPU(1), #1
+        ASM.CPU(1), #2
         ASM.AI1(1), #3
-        ASM.JZ(4),  #4
-        ASM.CPU(1), #6
-        ASM.IO(),   #7
-        ASM.CPU(2)  #8,9
-        ])   
+        ASM.PUSHA(), #4
+        ASM.PUSHA(), #4
+        ASM.AI1(1), #5
+        ASM.JZ(4),  #16
+        ASM.CPU(1), #8
+        ASM.JMP(17),
+        ASM.CPU(2)  #9 ,10
+        ])
+    """
+    prg1 = Program([
+        ASM.HEADER(4),
+        ASM.AI1(4),
+        ASM.BI1(1),
+        ASM.AD1(1),
+        ASM.JZ(2),
+        ASM.JMP(8),
+        ASM.EXIT(1)
+        ])
     kernel.fileSystem.write("asmcode", prg1)
     kernel.run("asmcode",1)
     kernel.run("asmcode",1)
