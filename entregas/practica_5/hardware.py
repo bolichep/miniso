@@ -10,12 +10,26 @@ INSTRUCTION_IO = 'IO'
 INSTRUCTION_CPU = 'CPU'
 INSTRUCTION_AI1 = 'AI1'
 INSTRUCTION_AD1 = 'AD1'
+INSTRUCTION_BI1 = 'BI1'
+INSTRUCTION_BD1 = 'BD1'
+INSTRUCTION_CAB = 'CAB'
 INSTRUCTION_JZ = 'JZ'
+INSTRUCTION_JMP = 'JMP'
+INSTRUCTION_CALL = 'CALL'
+INSTRUCTION_RET = 'RET'
+INSTRUCTION_POPA = 'POPA'
+INSTRUCTION_PUSHA = 'PUSHA'
+INSTRUCTION_POPB = 'POPB'
+INSTRUCTION_PUSHB = 'PUSHB'
 INSTRUCTION_EXIT = 'EXIT'
 
 
 ## Helper for emulated machine code
 class ASM():
+
+    @classmethod
+    def HEADER(self, space):
+        return [INSTRUCTION_JMP, str(space)] + ['0']* (space-2) 
 
     @classmethod
     def AD1(self, times):
@@ -24,6 +38,38 @@ class ASM():
     @classmethod
     def AI1(self, times):
         return [INSTRUCTION_AI1] * times
+
+    @classmethod
+    def BI1(self, times):
+        return [INSTRUCTION_BI1] * times
+
+    @classmethod
+    def BD1(self, times):
+        return [INSTRUCTION_BD1] * times
+
+    @classmethod
+    def CAB(self, times):
+        return [INSTRUCTION_CAB] * times
+
+    @classmethod
+    def JMP(self, direccion):
+        return [INSTRUCTION_JMP, str(direccion)]
+
+    @classmethod
+    def CALL(self, direccion):
+        return [INSTRUCTION_CALL, str(direccion)]
+
+    @classmethod
+    def RET(self):
+        return [INSTRUCTION_RET]
+
+    @classmethod
+    def PUSHA(self):
+        return [INSTRUCTION_PUSHA]
+
+    @classmethod
+    def POPA(self):
+        return [INSTRUCTION_POPA]
 
     @classmethod
     def JZ(self, direccion):
@@ -186,11 +232,11 @@ class MMU():
     def setPageFrame(self, pageId, frameId):
         self._tlb[pageId] = frameId
 
-    def fetch(self,  logicalAddress):
+    def logicalToPhysicalAddress(self, logicalAddress):
         if (logicalAddress > self._limit):
             raise Exception("Invalid Address,  {logicalAddress} is higher than process limit: {limit}".format(limit = self._limit, logicalAddress = logicalAddress))
 
-        # calculamos la pagina y el offset correspondiente a la direccion logica recibida 
+        # calculamos la pagina y el offset correspondiente a la direccion logica recibida
         pageId = logicalAddress // self._frameSize
         offset = logicalAddress % self._frameSize
 
@@ -204,8 +250,14 @@ class MMU():
         frameBaseDir  = self._frameSize * frameId
         physicalAddress = frameBaseDir + offset
 
+        return physicalAddress
+
+    def write(self, logicalAddress, value):
+        self._memory.put(self.logicalToPhysicalAddress(logicalAddress), value)
+
+    def fetch(self,  logicalAddress):
         # obtenemos la instrucción alocada en esa direccion
-        return self._memory.get(physicalAddress)
+        return self._memory.get(self.logicalToPhysicalAddress(logicalAddress))
 
 
 ## emulates the main Central Processor Unit
@@ -217,7 +269,9 @@ class Cpu():
         self._pc = -1
         self._ir = None
         self._ac = 0
+        self._bc = 0
         self._zf = True
+        self._sp = -1
 
     def tick(self, tickNbr):
         if (self._pc > -1):
@@ -239,28 +293,78 @@ class Cpu():
         if self._ir == 'EXIT':
             print("\x9B7m", end="")
             print("A Reg : ", self._ac)
+            print("B Reg : ", self._bc)
             print("z flag: ", self._zf)
             print("\x9B0m", end="")
+
+        if self._ir == 'CALL':
+            print("CALL instruction")
+            self._fetch()
+            self._sp += 1
+            self._mmu.write(self._sp, self._pc)
+            self._pc = int(self._ir)
+
+        if self._ir == 'RET':
+            print("RET Instruction")
+            self._pc = self._mmu.fetch(self._sp)
+            self._sp -= 1
+
+        if self._ir == 'PUSHA':
+            print("PUSHA instruction")
+            self._sp += 1
+            self._mmu.write(self._sp, self._ac)
+
+        if self._ir == 'POPA':
+            print("POPA instruction")
+            self._ac = self._mmu.fetch(self._sp)
+            self._sp -= 1
+
+        if self._ir == 'PUSHB':
+            print("PUSHB instruction")
+            self._sp += 1
+            self._mmu.write(self._sp, self._bc)
+
+        if self._ir == 'POPB':
+            print("POPB instruction")
+            self._bc = self._mmu.fetch(self._sp)
+            self._sp -= 1
 
         if self._ir == 'CPU':
             print("CPU Instruction")
 
+            self._zf = (self._bc == 0) 
+
         if self._ir == 'AD1':
             print("AD1 Instruction")
             self._ac -= 1
-            
+            self._zf = (self._ac == 0) 
 
         if self._ir == 'AI1':
             print("AI1 Instruction")
             self._ac += 1
-            
-        if self._ir == 'JZ':
-            print("JZ Instruction")
+            self._zf = (self._ac == 0) 
+
+        if self._ir == 'BD1':
+            print("BD1 Instruction")
+            self._bc -= 1
+            self._zf = (self._bc == 0) 
+
+        if self._ir == 'BI1':
+            print("BI1 Instruction")
+            self._bc += 1
+            self._zf = (self._bc == 0) 
+
+        if self._ir == 'JMP':
             self._fetch()
+            self._pc = int(self._ir)
+            print("JMP {} Instruction".format(self._ir))
+
+        if self._ir == 'JZ':
+            self._fetch()
+            print("JZ {} Instruction".format(self._ir))
             if self._zf:
                 self._pc += int(self._ir)
 
-        self._zf = (self._ac == 0)
         pass
 
     def _execute(self):
@@ -279,11 +383,12 @@ class Cpu():
 
     @property
     def context(self):
-        return (self._pc, self._ac, self._zf) # keep sync with so#297
+        # keep sync with so#297 and setter below
+        return (self._pc, self._ac, self._bc, self._sp, self._zf)
 
     @context.setter
     def context(self, values):
-        (self._pc, self._ac, self._zf) = values
+        (self._pc, self._ac, self._bc, self._sp, self._zf) = values
 
     @property
     def pc(self):
@@ -354,7 +459,7 @@ class Timer:
         self._quantum = 0   # por default esta desactivado
 
     def tick(self, tickNbr):
-        # registro que el proceso en CPU corrio un ciclo mas 
+        # registro que el proceso en CPU corrio un ciclo mas
         self._tickCount += 1
 
         if self._active and (self._tickCount > self._quantum) and self._cpu.isBusy():
@@ -362,7 +467,7 @@ class Timer:
             timeoutIRQ = IRQ(TIMEOUT_INTERRUPTION_TYPE)
             self._interruptVector.handle(timeoutIRQ)
         else:
-            self._cpu.tick(tickNbr) 
+            self._cpu.tick(tickNbr)
 
     def reset(self):
            self._tickCount = 0
