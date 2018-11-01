@@ -1,6 +1,7 @@
 from hardware import *
 import log
 from so import *
+import sys
 import readline
 
 
@@ -17,6 +18,7 @@ class shell():
     readyqueue     : muestra los PCB en el readyQueue
     memory         : muestra el contenido de la memoria
     pcbtable       : muestra el contenido de la tabla de PCB
+    ticktime n     : establece el tiempo en segundos de cada tick
     tick [n]       : envia n (o 1 por omision) tick de clock a los dispositivos subscriptos
     ls             : lista los programas salvados
     save name code : salva el codigo en 'code' bajo el nombre 'name'
@@ -28,7 +30,7 @@ class shell():
     fs = dict()
     fs.update({'uno':'CPU,CPU,IO,CPU,CPU,CPU,IO,CPU,CPU'})
     fs.update({'dos':'CPU,CPU,CPU,CPU,IO,CPU'})
-    fs.update({'tres':'CPU,CPU,CPU'})
+    fs.update({'tres':'JMP,2,CPU,EXIT'})
 
     def com(kernel):
         #log.logger.setLevel(60) # apago el log
@@ -60,7 +62,9 @@ class shell():
                             print("{:<8} {}".format(f, shell.fs.get(f)))
 
                     if comandos[0] == 'save':
-                        shell.fs.update({comandos[1]: comandos[2]})
+                        kernel.fileSystem.write(comandos[1], 
+                                Program([comandos[2].split(",")]) )
+                        #shell.fs.update({comandos[1]: comandos[2]})
 
                     if comandos[0] == 'load':
                         _code = shell.fs.get(comandos[1])
@@ -68,9 +72,11 @@ class shell():
                         print(_code)
 
                     if comandos[0] == 'run':
-                        kernel.fileSystem.write(_name,
-                                Program([_code.split(",")]) )
-                        kernel.run(_name, 3 if len(comandos) < 2 else int(comandos[1]))
+                        #kernel.fileSystem.write(_name, Program([_code.split(",")]) )
+                        kernel.run(comandos[1], 3 if len(comandos) < 2 else int(comandos[2]))
+
+                    if comandos[0] == 'ticktime':
+                        HARDWARE.timeUnit = float(comandos[1])
 
                     if comandos[0] == 'loaderreset':
                         kernel.loader.memoryPos = 0
@@ -126,6 +132,11 @@ class shell():
                             HARDWARE.clock.tick(1)
                             count -= 1
 
+                    if kernel.fileSystem.read(comandos[0]) != None:
+                        kernel.run(comandos[0], 
+                                3 if len(comandos) < 2 
+                                else int(comandos[1]))
+
                     # done current command, see if we got next
                     while comandos and comandos[0] is not ';':
                         comandos.pop(0)
@@ -138,5 +149,5 @@ class shell():
                 print("\nTo exit, type: quit<Enter>\nor help to see commands")
                 pass
             except (IndexError, AttributeError):
-                print("IndexError or AttributeError")
+                print("IndexError or AttributeError at {}".format(sys.exc_info()[-1].tb_lineno))
                 pass
