@@ -1,0 +1,5 @@
+loadder lload  solo cria una pageTable vacia
+
+MMU fetch : valida que la pagina esta en memoria
+
+PageFaultInterruption pide un frame 
