@@ -15,6 +15,7 @@ if __name__ == '__main__':
 
     ## setup our hardware and set memory size to 32 "cells"
     HARDWARE.setup(32)
+    HARDWARE.timeUnit = 0.2
 
     SCHEDULER_FCFS = 'FCFS'
     SCHEDULER_RR = 'RR'
@@ -55,17 +56,31 @@ if __name__ == '__main__':
     prg2 = Program([ASM.AI1(3), ASM.CPU(4)])
     prg3 = Program([ASM.CPU(4), ASM.IO(), ASM.CPU(1)]) 
 
-    kernel.fileSystem.write("prg1.exe", prg1)
-    kernel.fileSystem.write("prg2.exe", prg2)
-    kernel.fileSystem.write("prg3.exe", prg3)
+    # CALL RET Stack TEST
+    calltest = Program([
+        ASM.HEADER(4),
+        ASM.JMP(9),
+        ASM.AI1(1),
+        ASM.BD1(1),
+        ASM.RET(),
+        ASM.CALL(6),
+        ASM.CALL(6),
+        ASM.CALL(6)
+        ])
+    kernel.fileSystem.write("/bin/calltest", calltest)
+
+
+    kernel.fileSystem.write("/prg1", prg1)
+    kernel.fileSystem.write("/prg2", prg2)
+    kernel.fileSystem.write("/prg3", prg3)
     # execute all programs "concurrently"
-    kernel.run("prg1.exe",1)
-    kernel.run("prg2.exe",0)
-    kernel.run("prg3.exe",0)
-    #kernel.run("prg3.exe",2)
-    sleep(16)
-    kernel.run("prg1.exe",1)
-    kernel.run("prg2.exe",0)
-    kernel.run("prg3.exe",0)
+    kernel.run("/prg1",1)
+    kernel.run("/prg2",0)
+    kernel.run("/prg3",0)
+    #kernel.run("/prg3",2)
+    sleep(32 * HARDWARE.timeUnit)
+    kernel.run("/prg1",1)
+    kernel.run("/prg2",0)
+    kernel.run("/prg3",0)
 
     shell.com(kernel)

@@ -301,67 +301,63 @@ class Cpu():
 
         if self._ir == 'EXIT':
             print("\x9B7m", end="")
-            print("A Reg : ", self._ac)
-            print("B Reg : ", self._bc)
-            print("z flag: ", self._zf)
+            print("A Reg : ", self._ac, "/ B Reg : ", self._bc,"/ z flag: ", self._zf)
             print("\x9B0m", end="")
 
         if self._ir == 'CALL':
-            print("CALL instruction")
             self._fetch()
             self._sp += 1
             self._mmu.write(self._sp, self._pc)
             self._pc = int(self._ir)
+            print("CALL instruction")
 
         if self._ir == 'RET':
-            print("RET Instruction")
             self._pc = self._mmu.fetch(self._sp)
             self._sp -= 1
+            print("RET Instruction")
 
         if self._ir == 'PUSHA':
-            print("PUSHA instruction")
             self._sp += 1
             self._mmu.write(self._sp, self._ac)
+            print("PUSHA instruction")
 
         if self._ir == 'POPA':
-            print("POPA instruction")
             self._ac = self._mmu.fetch(self._sp)
             self._sp -= 1
+            print("POPA instruction")
 
         if self._ir == 'PUSHB':
-            print("PUSHB instruction")
             self._sp += 1
             self._mmu.write(self._sp, self._bc)
+            print("PUSHB instruction")
 
         if self._ir == 'POPB':
-            print("POPB instruction")
             self._bc = self._mmu.fetch(self._sp)
             self._sp -= 1
+            print("POPB instruction")
 
         if self._ir == 'CPU':
             print("CPU Instruction")
 
-            self._zf = (self._bc == 0) 
-
         if self._ir == 'AD1':
-            print("AD1 Instruction")
             self._ac -= 1
             self._zf = (self._ac == 0) 
+            print("AD1 Instruction")
 
         if self._ir == 'AI1':
-            print("AI1 Instruction")
             self._ac += 1
             self._zf = (self._ac == 0) 
+            print("AI1 Instruction")
 
         if self._ir == 'BD1':
-            print("BD1 Instruction")
             self._bc -= 1
             self._zf = (self._bc == 0) 
+            print("BD1 Instruction")
 
         if self._ir == 'BI1':
-            print("BI1 Instruction")
             self._bc += 1
             self._zf = (self._bc == 0) 
+            print("BI1 Instruction")
 
         if self._ir == 'JMP':
             self._fetch()
@@ -384,7 +380,7 @@ class Cpu():
             ioInIRQ = IRQ(IO_IN_INTERRUPTION_TYPE, self._ir)
             self._interruptVector.handle(ioInIRQ)
         else:
-            log.logger.info("cpu - Exec: {instr}, PC={pc}".format(instr=self._ir, pc=self._pc))
+            log.logger.info("cpu - Exec: {instr}, PC={pc} A={ac} B={bc} SP={sp} zflag={z}".format(instr=self._ir, pc=self._pc, ac=self._ac, bc=self._bc, sp=self._sp, z=self._zf))
 
 
     def isBusy(self):
