@@ -297,76 +297,79 @@ class Cpu():
 
     def _decode(self):
         if self._ir == 'IO':
-            print("IO Instruction")
+            #print("IO Instruction")
+            pass
 
         if self._ir == 'EXIT':
-            print("\x9B7m", end="")
-            print("A Reg : ", self._ac, "/ B Reg : ", self._bc,"/ z flag: ", self._zf)
-            print("\x9B0m", end="")
+            #print("\x9B7m", end="")
+            #print("A Reg : ", self._ac, "/ B Reg : ", self._bc,"/ z flag: ", self._zf)
+            #print("\x9B0m", end="")
+            pass
 
         if self._ir == 'CALL':
             self._fetch()
             self._sp += 1
             self._mmu.write(self._sp, self._pc)
             self._pc = int(self._ir)
-            print("CALL instruction")
+            #print("CALL instruction")
 
         if self._ir == 'RET':
             self._pc = self._mmu.fetch(self._sp)
             self._sp -= 1
-            print("RET Instruction")
+            #print("RET Instruction")
 
         if self._ir == 'PUSHA':
             self._sp += 1
             self._mmu.write(self._sp, self._ac)
-            print("PUSHA instruction")
+            #print("PUSHA instruction")
 
         if self._ir == 'POPA':
             self._ac = self._mmu.fetch(self._sp)
             self._sp -= 1
-            print("POPA instruction")
+            #print("POPA instruction")
 
         if self._ir == 'PUSHB':
             self._sp += 1
             self._mmu.write(self._sp, self._bc)
-            print("PUSHB instruction")
+            #print("PUSHB instruction")
 
         if self._ir == 'POPB':
             self._bc = self._mmu.fetch(self._sp)
             self._sp -= 1
-            print("POPB instruction")
+            #print("POPB instruction")
 
         if self._ir == 'CPU':
-            print("CPU Instruction")
+            #print("CPU Instruction")
+            pass
 
         if self._ir == 'AD1':
             self._ac -= 1
             self._zf = (self._ac == 0) 
-            print("AD1 Instruction")
+            #print("AD1 Instruction")
 
         if self._ir == 'AI1':
             self._ac += 1
             self._zf = (self._ac == 0) 
-            print("AI1 Instruction")
+            #print("AI1 Instruction")
 
         if self._ir == 'BD1':
             self._bc -= 1
             self._zf = (self._bc == 0) 
-            print("BD1 Instruction")
+            #print("BD1 Instruction")
 
         if self._ir == 'BI1':
             self._bc += 1
             self._zf = (self._bc == 0) 
-            print("BI1 Instruction")
+            #print("BI1 Instruction")
 
         if self._ir == 'JMP':
             self._fetch()
             self._pc = int(self._ir)
-            print("JMP {} Instruction".format(self._ir))
+            #print("JMP {} Instruction".format(self._ir))
 
         if self._ir == 'JZ':
             self._fetch()
-            print("JZ {} Instruction zf={}".format(self._ir, self._zf))
+            #print("JZ {} Instruction zf={}".format(self._ir, self._zf))
             if self._zf:
                 self._pc += int(self._ir)
 

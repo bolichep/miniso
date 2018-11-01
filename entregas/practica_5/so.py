@@ -210,7 +210,7 @@ class Dispacher():
         for page in range(0, len(pages)):
             HARDWARE.mmu.setPageFrame(page, pages[page])
         HARDWARE.timer.reset()
-        print("pid: ", pcb.pid, "prio: ", pcb.priority, "TLB: ", HARDWARE.mmu._tlb)
+        #print("pid: ", pcb.pid, "prio: ", pcb.priority, "TLB: ", HARDWARE.mmu._tlb)
 
     def save(self, pcb):
         pcb.context = HARDWARE.cpu.context # all regs in a big tuple
@@ -388,7 +388,7 @@ class Loader():
             physicalAddress = pageId + offset * self._mm._frameSize
             inst = programCode.instructions[instAddr]
             self._mm.memory.put(physicalAddress, inst)
-            print(physicalAddress, inst)
+            #print(physicalAddress, inst)
 
         # TODO eliminar baseDir
         baseDir = 0
@@ -601,15 +601,13 @@ class MemoryManager:
             self._freeFrames = self._freeFrames[framesToAlloc:]
         else:
             allocatedFrames = []
-        print("Allocating: ", allocatedFrames, 
-              "Frees: ",  self._freeFrames,
-              "FrameSize: ", self._frameSize)
+        #print("Allocating: ", allocatedFrames, "Frees: ",  self._freeFrames, "FrameSize: ", self._frameSize)
         return allocatedFrames
 
     def freeFrames(self, frames):
-        print("Freeing: ", frames, "Prev Frees: ", self._freeFrames)
+        #print("Freeing: ", frames, "Prev Frees: ", self._freeFrames)
         self._freeFrames += frames
-        print("Current Frees: ", self._freeFrames)
+        #print("Current Frees: ", self._freeFrames)
      
     def putPageTable(self, pid, pages):
         self._pageTables.update({pid: pages})
