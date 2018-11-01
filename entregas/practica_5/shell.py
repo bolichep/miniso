@@ -3,6 +3,7 @@ import log
 from so import *
 import sys
 import readline
+from threading import Thread, Lock
 
 
 class shell():
@@ -32,6 +33,12 @@ class shell():
     fs.update({'dos':'CPU,CPU,CPU,CPU,IO,CPU'})
     fs.update({'tres':'JMP,2,CPU,EXIT'})
 
+    def gui():
+        print("GUI@@@@@@@@@@@@@@!")
+        while True:
+            guiCmd = input("$$x ").split()
+
+
     def com(kernel):
         #log.logger.setLevel(60) # apago el log
         #HARDWARE.switchOff()
@@ -60,6 +67,11 @@ class shell():
 
                         for f in shell.fs:
                             print("{:<8} {}".format(f, shell.fs.get(f)))
+
+                    if comandos[0] == 'gui':
+                        t = Thread(target=shell.gui)
+                        t.start()
+
 
                     if comandos[0] == 'save':
                         kernel.fileSystem.write(comandos[1], 
