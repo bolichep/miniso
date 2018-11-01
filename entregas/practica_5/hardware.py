@@ -147,6 +147,15 @@ class Clock():
     def __init__(self):
         self._subscribers = []
         self._running = False
+        self._timeUnit = 1
+
+    @property
+    def tickUnitInSec(self):
+        return self._timeUnit
+
+    @tickUnitInSec.setter
+    def tickUnitInSec(self, value):
+        self._timeUnit = value
 
     def addSubscriber(self, subscriber):
         self._subscribers.append(subscriber)
@@ -172,7 +181,7 @@ class Clock():
         for subscriber in self._subscribers:
             subscriber.tick(tickNbr)
         ## wait 1 second and keep looping
-        sleep(0.5)
+        sleep(self._timeUnit)
 
     def do_ticks(self, times):
         log.logger.info("---- :::: CLOCK do_ticks: {times} ::: -----".format(times=times))
@@ -537,6 +546,13 @@ class Hardware():
     def timer(self):
         return self._timer
 
+    @property
+    def timeUnit(self):
+        return self._clock.tickUnitInSec
+
+    @timeUnit.setter
+    def timeUnit(self, value):
+        self._clock.tickUnitInSec = value
 
     def __repr__(self):
         return "HARDWARE state {cpu}\n{mem}".format(cpu=self._cpu, mem=self._memory)
