@@ -153,11 +153,13 @@ class NewInterruptionHandler(AbstractInterruptionHandler):
         programName, programCode, priority = irq.parameters
         priority = 4 if priority > 4 or priority < 0 else priority
         log.logger.info("New loading {} {}".format(programName, priority))
-        pages, baseDir, limit = self.kernel.loader.load(programName)
-        pcb = ProcessControlBlock(programName, priority, baseDir, limit)
+        #pages, baseDir, limit = self.kernel.loader.load(programName)
+        limit = self.kernel.loader.codeSize(programName)
+        pcb = ProcessControlBlock(programName, priority, limit)
         pcb.state = State.snew
         #pcb.pages = pages
-        self.kernel.memoryManager.putPageTable(pcb.pid, pages)
+        #self.kernel.memoryManager.putPageTable(pcb.pid, pages)
+        self.kernel.memoryManager.newPageTable(pbc.pid)
         self.kernel.pcbTable.update(pcb) #add pcb
         # to ready or running
         self.contextSwitchToReadyOrRunning(pcb)
@@ -375,6 +377,23 @@ class Loader():
     def memoryPos(self, value):
         self._memoryPos = value
 
+    def codeSize(self, path):
+        return len((self._fs.read(path)).instructions)
+        
+    def loadPage(self,pcb):
+
+        programCode = self._fs.read(pcb.path)
+        page = self._mm.allocFrames(1)
+        
+        for instAddr in range(0, progSize):
+            pageId = instAddr % self._mm._frameSize
+            offset = pages[instAddr // self._mm._frameSize]
+            physicalAddress = pageId + offset * self._mm._frameSize
+            inst = programCode.instructions[instAddr]
+            self._mm.memory.put(physicalAddress, inst)
+
+
+    
     def load(self, path):
         programCode = self._fs.read(path)
         progSize = len(programCode.instructions)
@@ -584,6 +603,13 @@ class Fsb:
     def read(self, fname):
         return self._fs.get(fname)
 
+class pagina:
+    
+    def __init__(self):
+        self._valid = False
+        self._frame = None
+        self._dirty = False
+        self._chance = 0
 
 class MemoryManager:
 
@@ -608,9 +634,12 @@ class MemoryManager:
         #print("Freeing: ", frames, "Prev Frees: ", self._freeFrames)
         self._freeFrames += frames
         #print("Current Frees: ", self._freeFrames)
-     
-    def putPageTable(self, pid, pages):
-        self._pageTables.update({pid: pages})
+    
+    def newPageTable(self, pid):
+        self._pageTables.update({pid: []})
+
+    def putPageTable(self, pid, page):
+        self._pageTables.update({pid: page})
 
     def getPageTable(self, pid):
         return self._pageTables.get(pid)
