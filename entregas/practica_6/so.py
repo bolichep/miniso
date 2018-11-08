@@ -195,6 +195,11 @@ class TimeoutInterruptionHandler(AbstractInterruptionHandler):
         else:
             self.kernel.dispacher.resetTimer()
 
+class PageFaultInterruptionHandler(AbstractInterruptionHandler):
+
+    def execute(self, irq):
+        pass
+
 
 #emul dispacher
 class Dispacher():

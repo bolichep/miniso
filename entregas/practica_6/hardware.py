@@ -22,6 +22,7 @@ INSTRUCTION_PUSHA = 'PUSHA'
 INSTRUCTION_POPB = 'POPB'
 INSTRUCTION_PUSHB = 'PUSHB'
 INSTRUCTION_EXIT = 'EXIT'
+INSTRUCTION_PAGEFAULT = 'PAGE_FAULT'
 
 
 ## Helper for emulated machine code
@@ -95,6 +96,10 @@ class ASM():
     def isIO(self, instruction):
         return INSTRUCTION_IO == instruction
 
+    @classmethod
+    def isPAGEFAULT(self, instruction):
+        return INSTRUCTION_PAGEFAULT == instruction
+
 
 
 ##  Estas son la interrupciones soportadas por nuestro Kernel
@@ -103,6 +108,7 @@ IO_IN_INTERRUPTION_TYPE = "#IO_IN"
 IO_OUT_INTERRUPTION_TYPE = "#IO_OUT"
 NEW_INTERRUPTION_TYPE = "#NEW"
 TIMEOUT_INTERRUPTION_TYPE = "#TIMEOUT"
+PAGE_FAULT_INTERRUPTION_TYPE = "#PAGE_FAULT"
 
 ## emulates an Interrupt request
 class IRQ:
@@ -306,6 +312,9 @@ class Cpu():
             #print("\x9B0m", end="")
             pass
 
+        if self._ir == 'PAGE_FAULT'
+            pass
+
         if self._ir == 'CALL':
             self._fetch()
             self._sp += 1
@@ -382,6 +391,9 @@ class Cpu():
         elif ASM.isIO(self._ir):
             ioInIRQ = IRQ(IO_IN_INTERRUPTION_TYPE, self._ir)
             self._interruptVector.handle(ioInIRQ)
+        elif ASM.isPAGEFAULT(self._ir):
+            pageFaultIRQ = IRQ(PAGE_FAULT_INTERRUPTION_TYPE, self.ir)
+            self._interruptVector.handle(pageFaultIRQ)
         else:
             log.logger.info("cpu - Exec: {instr}, PC={pc} A={ac} B={bc} SP={sp} zflag={z}".format(instr=self._ir, pc=self._pc, ac=self._ac, bc=self._bc, sp=self._sp, z=self._zf))
 
