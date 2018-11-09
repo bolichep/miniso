@@ -242,7 +242,8 @@ class MMU():
         self._frameSize = frameSize
 
     def updateTLB(self, pageNumber, page):
-        self._tlb.update({pageNumber :})
+        self._tlb.update({pageNumber :page})
+        
 
     def resetTLB(self):
         self._tlb = dict()
@@ -268,7 +269,10 @@ class MMU():
             pageFaultIRQ = IRQ(PAGE_FAULT_INTERRUPTION_TYPE, None) ##TODO pasar pageID para saber donde cargarlo.
             HARDWARE.cpu._interruptVector.handle(pageFaultIRQ)
             page = self._tlb[pageId]
+
+        print("page ", page)
         frameId = page.frame
+        print("frameId ", frameId )
         ##calculamos la direccion fisica resultante
         frameBaseDir  = self._frameSize * frameId
         physicalAddress = frameBaseDir + offset

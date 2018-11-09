@@ -198,16 +198,17 @@ class PageFaultInterruptionHandler(AbstractInterruptionHandler):
     def execute(self, irq):
 
 
-        if(self.kernel.memoryManager.hasFreeFrame()):
-            freeFrame = self.kernel.memoryManager.getFreeFrame()
-        else:
+        if not self.kernel.memoryManager.hasFreeFrame():
             self.kernel.HARDWARE.MMU.chooseVictim()
-            freeFrame = self.kernel.memoryManager.getFreeFrame()
+
+        freeFrame = self.kernel.memoryManager.getFreeFrame()
         runningPCB = self.kernel.pcbTable.runningPCB
         pageNumber = runningPCB.pc  // self.kernel.memoryManager.frameSize
         page = self.kernel.memoryManager.getPage(self.kernel.pcbTable.runningPCB.pid, pageNumber)
         page.setFrame = freeFrame
+        page.valid = True
         self.kernel.loader.loadPage(runningPCB)
+        print("page ", page)
         self.kernel.memoryManager.setPage(runningPCB.pid, pageNumber, page)
         self.kernel.hardware.mmu.updateTLB(pageNumber, page)
 
@@ -643,6 +644,9 @@ class Page:
         self._dirty = False
         self._chance = 0
 
+    def __repr__(self):
+        return "Page: {} {} {} {}".format(self._valid, self._frame, self._dirty, self._chance)
+
     @property
     def getValid(self):
         return self._valid
@@ -692,7 +696,7 @@ class MemoryManager:
 
     def getFreeFrame(self):
         #precondicion: tengo frames libres
-            return self._freeFrames[0]
+            return self._freeFrames.pop(0)
 
     def hasFreeFrame(self):
 
@@ -711,8 +715,6 @@ class MemoryManager:
     def frameSize(self):
         return self._frameSize
     
-       
-
 
     
     def newPageTable(self, pid):
