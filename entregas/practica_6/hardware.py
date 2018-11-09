@@ -241,6 +241,9 @@ class MMU():
     def frameSize(self, frameSize):
         self._frameSize = frameSize
 
+    def updateTLB(self, pageNumber, page):
+        self._tlb.update({pageNumber :})
+
     def resetTLB(self):
         self._tlb = dict()
 
@@ -257,10 +260,15 @@ class MMU():
 
         # buscamos la direccion Base del frame donde esta almacenada la pagina
         try:
-            frameId = self._tlb[pageId]
+            page = self._tlb[pageId]
         except:
             raise Exception("\n*\n* ERROR \n*\n Error en el MMU\nNo se cargo la pagina  {pageId}".format(pageId = str(pageId)))
 
+        if not page.getValid:
+            pageFaultIRQ = IRQ(PAGE_FAULT_INTERRUPTION_TYPE, None) ##TODO pasar pageID para saber donde cargarlo.
+            HARDWARE.cpu._interruptVector.handle(pageFaultIRQ)
+            page = self._tlb[pageId]
+        frameId = page.frame
         ##calculamos la direccion fisica resultante
         frameBaseDir  = self._frameSize * frameId
         physicalAddress = frameBaseDir + offset
@@ -312,7 +320,7 @@ class Cpu():
             #print("\x9B0m", end="")
             pass
 
-        if self._ir == 'PAGE_FAULT'
+        if self._ir == 'PAGE_FAULT':
             pass
 
         if self._ir == 'CALL':
@@ -391,9 +399,6 @@ class Cpu():
         elif ASM.isIO(self._ir):
             ioInIRQ = IRQ(IO_IN_INTERRUPTION_TYPE, self._ir)
             self._interruptVector.handle(ioInIRQ)
-        elif ASM.isPAGEFAULT(self._ir):
-            pageFaultIRQ = IRQ(PAGE_FAULT_INTERRUPTION_TYPE, self.ir)
-            self._interruptVector.handle(pageFaultIRQ)
         else:
             log.logger.info("cpu - Exec: {instr}, PC={pc} A={ac} B={bc} SP={sp} zflag={z}".format(instr=self._ir, pc=self._pc, ac=self._ac, bc=self._bc, sp=self._sp, z=self._zf))
 

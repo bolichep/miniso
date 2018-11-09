@@ -153,13 +153,11 @@ class NewInterruptionHandler(AbstractInterruptionHandler):
         programName, programCode, priority = irq.parameters
         priority = 4 if priority > 4 or priority < 0 else priority
         log.logger.info("New loading {} {}".format(programName, priority))
-        #pages, baseDir, limit = self.kernel.loader.load(programName)
+        pages = self.kernel.loader.create(programName)
         limit = self.kernel.loader.codeSize(programName)
         pcb = ProcessControlBlock(programName, priority, limit)
         pcb.state = State.snew
-        #pcb.pages = pages
-        #self.kernel.memoryManager.putPageTable(pcb.pid, pages)
-        self.kernel.memoryManager.newPageTable(pbc.pid)
+        self.kernel.memoryManager.putPageTable(pcb.pid, pages)
         self.kernel.pcbTable.update(pcb) #add pcb
         # to ready or running
         self.contextSwitchToReadyOrRunning(pcb)
@@ -198,8 +196,20 @@ class TimeoutInterruptionHandler(AbstractInterruptionHandler):
 class PageFaultInterruptionHandler(AbstractInterruptionHandler):
 
     def execute(self, irq):
-        pass
 
+
+        if(self.kernel.memoryManager.hasFreeFrame()):
+            freeFrame = self.kernel.memoryManager.getFreeFrame()
+        else:
+            self.kernel.HARDWARE.MMU.chooseVictim()
+            freeFrame = self.kernel.memoryManager.getFreeFrame()
+        runningPCB = self.kernel.pcbTable.runningPCB
+        pageNumber = runningPCB.pc  // self.kernel.memoryManager.frameSize
+        page = self.kernel.memoryManager.getPage(self.kernel.pcbTable.runningPCB.pid, pageNumber)
+        page.setFrame = freeFrame
+        self.kernel.loader.loadPage(runningPCB)
+        self.kernel.memoryManager.setPage(runningPCB.pid, pageNumber, page)
+        self.kernel.hardware.mmu.updateTLB(pageNumber, page)
 
 #emul dispacher
 class Dispacher():
@@ -384,15 +394,32 @@ class Loader():
 
     def codeSize(self, path):
         return len((self._fs.read(path)).instructions)
+
+    def create(self, path):
+
+        programCode = self._fs.read(path)
+        programSize = len(programCode.instructions)
+        pagesToCreate = programSize // self._mm._frameSize
+        pages = []
+
+        if (programSize % self._mm._frameSize == 0):
+            pagesToCreate + 1
+
+        for x in range(0, pagesToCreate):
+            pages.append(Page())
+
+        return pages
+
         
     def loadPage(self,pcb):
 
         programCode = self._fs.read(pcb.path)
+
         page = self._mm.allocFrames(1)
-        
-        for instAddr in range(0, progSize):
+        pc = pcb.pc
+        for instAddr in range(pc, pc+self._mm._frameSize):
             pageId = instAddr % self._mm._frameSize
-            offset = pages[instAddr // self._mm._frameSize]
+            offset = page[instAddr // self._mm._frameSize]
             physicalAddress = pageId + offset * self._mm._frameSize
             inst = programCode.instructions[instAddr]
             self._mm.memory.put(physicalAddress, inst)
@@ -608,13 +635,36 @@ class Fsb:
     def read(self, fname):
         return self._fs.get(fname)
 
-class pagina:
+class Page:
     
     def __init__(self):
         self._valid = False
         self._frame = None
         self._dirty = False
         self._chance = 0
+
+    @property
+    def getValid(self):
+        return self._valid
+
+    @property
+    def setValid(self, bool):
+        self._valid = bool
+
+    @property
+    def frame(self):
+        return self._frame
+    
+    @frame.setter
+    def frame(self, frame):
+         self._frame = frame
+    
+
+    @property
+    def setChance(self, int):
+        self._chance = int
+    
+    
 
 class MemoryManager:
 
@@ -639,6 +689,31 @@ class MemoryManager:
         #print("Freeing: ", frames, "Prev Frees: ", self._freeFrames)
         self._freeFrames += frames
         #print("Current Frees: ", self._freeFrames)
+
+    def getFreeFrame(self):
+        #precondicion: tengo frames libres
+            return self._freeFrames[0]
+
+    def hasFreeFrame(self):
+
+        return self._freeFrames
+
+    def getPage(self, pid, pageNumber):
+        process = self._pageTables[pid]
+        return process[pageNumber]
+
+    def setPage(self, pid, pageNumber, page):
+        process = self._pageTables[pid]
+        process[pageNumber] = page
+        self._pageTables.update({pid: process})
+
+    @property
+    def frameSize(self):
+        return self._frameSize
+    
+       
+
+
     
     def newPageTable(self, pid):
         self._pageTables.update({pid: []})
@@ -677,6 +752,9 @@ class Kernel():
 
         timeoutHandler = TimeoutInterruptionHandler(self)
         self._hardware.interruptVector.register(TIMEOUT_INTERRUPTION_TYPE, timeoutHandler)
+
+        pageFaultHandler = PageFaultInterruptionHandler(self)
+        self._hardware.interruptVector.register(PAGE_FAULT_INTERRUPTION_TYPE, pageFaultHandler)
 
 
         ## controls the Hardware's I/O Device
@@ -736,6 +814,11 @@ class Kernel():
     @property
     def scheduler(self):
         return self._scheduler
+
+    @property
+    def hardware(self):
+        return self._hardware
+    
 
     def __repr__(self):
         return "Kernel "
