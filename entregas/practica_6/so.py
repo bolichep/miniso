@@ -183,6 +183,7 @@ class IoOutInterruptionHandler(AbstractInterruptionHandler):
         log.logger.info(self.kernel.ioDeviceController)
 
 
+
 class TimeoutInterruptionHandler(AbstractInterruptionHandler):
 
     def execute(self, irq):
@@ -197,20 +198,20 @@ class PageFaultInterruptionHandler(AbstractInterruptionHandler):
 
     def execute(self, irq):
 
-
-        if not self.kernel.memoryManager.hasFreeFrame():
-            self.kernel.HARDWARE.MMU.chooseVictim()
-
+         ## MEMORY MANAGER GET FRAME   self.kernel.HARDWARE.MMU.chooseVictim()
+        #self.kernel.memoryManager = updatePageTable() ##DE TLB A MM
         freeFrame = self.kernel.memoryManager.getFreeFrame()
         runningPCB = self.kernel.pcbTable.runningPCB
-        pageNumber = runningPCB.pc  // self.kernel.memoryManager.frameSize
+        #pageNumber = runningPCB.pc  // self.kernel.memoryManager.frameSize
+        pageNumber = irq.parameters
         page = self.kernel.memoryManager.getPage(self.kernel.pcbTable.runningPCB.pid, pageNumber)
-        page.setFrame = freeFrame
-        page.valid = True
-        self.kernel.loader.loadPage(runningPCB)
-        print("page ", page)
+        page.frame = freeFrame
+        print("freeFrame ", freeFrame)
+        self.kernel.loader.loadPage(runningPCB.path, pageNumber, freeFrame)
+        print("page to update ", page)
         self.kernel.memoryManager.setPage(runningPCB.pid, pageNumber, page)
         self.kernel.hardware.mmu.updateTLB(pageNumber, page)
+        log.logger.info(self._kernel.hardware)
 
 #emul dispacher
 class Dispacher():
@@ -221,7 +222,7 @@ class Dispacher():
         #HARDWARE.cpu.pc = pcb.pc
         HARDWARE.cpu.context = pcb.context #all reg in a big tuple
         HARDWARE.mmu.baseDir = pcb.baseDir
-        HARDWARE.mmu.limit = pcb.limit
+        ##HARDWARE.mmu.limit = pcb.limit
         HARDWARE.mmu.resetTLB()
         pages = self._kernel.memoryManager.getPageTable(pcb.pid)
         #pages = pcb.pages
@@ -394,6 +395,7 @@ class Loader():
         self._memoryPos = value
 
     def codeSize(self, path):
+        print("Tamanio de Programa ", len((self._fs.read(path)).instructions))
         return len((self._fs.read(path)).instructions)
 
     def create(self, path):
@@ -412,39 +414,19 @@ class Loader():
         return pages
 
         
-    def loadPage(self,pcb):
+    def loadPage(self,path, pageId, frameId):
 
-        programCode = self._fs.read(pcb.path)
-
-        page = self._mm.allocFrames(1)
-        pc = pcb.pc
-        for instAddr in range(pc, pc+self._mm._frameSize):
-            pageId = instAddr % self._mm._frameSize
-            offset = page[instAddr // self._mm._frameSize]
-            physicalAddress = pageId + offset * self._mm._frameSize
-            inst = programCode.instructions[instAddr]
-            self._mm.memory.put(physicalAddress, inst)
-
-
-    
-    def load(self, path):
         programCode = self._fs.read(path)
-        progSize = len(programCode.instructions)
-        pages = self._mm.allocFrames(progSize)
-        if not pages:
-            raise Exception("\x9B37;44m\x9B2J\x9B12;18HException: No Hay memoria. [BSOD]... o demandá ;P \x9B14;18H(!!!)\x9B0m")
-        
-        for instAddr in range(0, progSize):
-            pageId = instAddr % self._mm._frameSize
-            offset = pages[instAddr // self._mm._frameSize]
-            physicalAddress = pageId + offset * self._mm._frameSize
-            inst = programCode.instructions[instAddr]
-            self._mm.memory.put(physicalAddress, inst)
-            #print(physicalAddress, inst)
 
-        # TODO eliminar baseDir
-        baseDir = 0
-        return pages, baseDir, progSize - 1 # limit = progSize - 1
+
+       
+        for instAddr in range(pageId * self._mm._frameSize, pageId * self._mm._frameSize + self._mm._frameSize):
+            offset = instAddr % self._mm._frameSize
+            pageNumber = instAddr // self._mm._frameSize
+            physicalAddress = offset + frameId * self._mm._frameSize
+            inst = programCode.instructions[instAddr]   
+            self._mm.memory.put(physicalAddress, inst)
+
 
 
 class AbstractScheduler():
@@ -639,29 +621,29 @@ class Fsb:
 class Page:
     
     def __init__(self):
-        self._valid = False
         self._frame = None
         self._dirty = False
         self._chance = 0
+        self._validBit = False
 
     def __repr__(self):
-        return "Page: {} {} {} {}".format(self._valid, self._frame, self._dirty, self._chance)
+        return "<<Page, Frame>>: {} {} {}".format(self._frame, self._dirty, self._chance)
 
     @property
-    def getValid(self):
-        return self._valid
-
-    @property
-    def setValid(self, bool):
-        self._valid = bool
+    def isValid(self):
+        return self._validBit
 
     @property
     def frame(self):
-        return self._frame
+        res = self._frame
+        self._frame = None
+        self._validBit= False
+        return res
     
     @frame.setter
     def frame(self, frame):
          self._frame = frame
+         self._validBit= True
     
 
     @property
@@ -678,12 +660,10 @@ class MemoryManager:
         self._frameSize = frameSize
         self._pageTables = dict()
 
-    def allocFrames(self, numberOfCells):
-        framesToAlloc = 1 if numberOfCells % self._frameSize else 0
-        framesToAlloc += numberOfCells // self._frameSize
-        if framesToAlloc <= len(self._freeFrames):
-            allocatedFrames = self._freeFrames[0:framesToAlloc]
-            self._freeFrames = self._freeFrames[framesToAlloc:]
+    def allocFrames(self, numberOfFrames):
+        if numberOfFrames <= len(self._freeFrames):
+            allocatedFrames = self._freeFrames[0:numberOfFrames]
+            self._freeFrames = self._freeFrames[numberOfFrames:]
         else:
             allocatedFrames = []
         #print("Allocating: ", allocatedFrames, "Frees: ",  self._freeFrames, "FrameSize: ", self._frameSize)

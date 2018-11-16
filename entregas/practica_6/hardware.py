@@ -242,7 +242,9 @@ class MMU():
         self._frameSize = frameSize
 
     def updateTLB(self, pageNumber, page):
+        print ("before updating tlb ", self._tlb)
         self._tlb.update({pageNumber :page})
+        print ("updated tlb ", self._tlb)
         
 
     def resetTLB(self):
@@ -265,8 +267,9 @@ class MMU():
         except:
             raise Exception("\n*\n* ERROR \n*\n Error en el MMU\nNo se cargo la pagina  {pageId}".format(pageId = str(pageId)))
 
-        if not page.getValid:
-            pageFaultIRQ = IRQ(PAGE_FAULT_INTERRUPTION_TYPE, None) ##TODO pasar pageID para saber donde cargarlo.
+        print("isValid ", page.isValid)
+        if not page.isValid:
+            pageFaultIRQ = IRQ(PAGE_FAULT_INTERRUPTION_TYPE, pageId) ##TODO pasar pageID para saber donde cargarlo.
             HARDWARE.cpu._interruptVector.handle(pageFaultIRQ)
             page = self._tlb[pageId]
 
