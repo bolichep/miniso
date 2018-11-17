@@ -7,15 +7,15 @@ import sys
 
 
 ##
-##  MAIN 
+##  MAIN
 ##
 if __name__ == '__main__':
     log.setupLogger()
     log.logger.info('Starting emulator')
 
     ## setup our hardware and set memory size to 32 "cells"
-    HARDWARE.setup(32)
-    HARDWARE.timeUnit = 0.2 * 6
+    HARDWARE.setup(64)
+    HARDWARE.timeUnit = 0.1
 
     SCHEDULER_FCFS = 'FCFS'
     SCHEDULER_RR = 'RR'
@@ -52,9 +52,9 @@ if __name__ == '__main__':
 
     # Ahora vamos a intentar ejecutar 3 programas a la vez
     ##################
-    prg1 = Program([ASM.CPU(2), ASM.IO(), ASM.CPU(3), ASM.IO(), ASM.CPU(2)])   
+    prg1 = Program([ASM.CPU(2), ASM.IO(), ASM.CPU(3), ASM.IO(), ASM.CPU(2)])
     prg2 = Program([ASM.INCA(3), ASM.CPU(4)])
-    prg3 = Program([ASM.CPU(4), ASM.IO(), ASM.CPU(1)]) 
+    prg3 = Program([ASM.CPU(4), ASM.IO(), ASM.CPU(1)])
 
     # CALL RET Stack TEST
     calltest = Program([
@@ -70,33 +70,61 @@ if __name__ == '__main__':
     """
     fib 0 = 0
     fib 1 = 1
-    fib n = fib (n-1) + fib (n-2) 
+    fib n = fib (n-1) + fib (n-2)
     """
     fib = Program([
-        ASM.HEADER(4),
-        ASM.JMP('START'),
-        ASM.LABEL('FIB'),
-        ASM.POPB(),       #return addr 
-        ASM.POPA(),
-        ASM.DECA(3),
+        ASM.HEADER(16),
+        ASM.STORA('10'),      # fib(10)
+        ASM.CALL('FIB'),
+        ASM.EXIT(1),
+
+        ASM.LABEL('FIB'),    # fib(n), A = n
+        ASM.STORB('0'),
+        ASM.CMPAB(),
+        ASM.JZ('RETORNO'),   # B = fib(n)
+        ASM.STORB('1'),
+        ASM.CMPAB(),
+        ASM.JZ('RETORNO'),   # B = fib(n)
+        ASM.DECA(1),         # n-1
         ASM.PUSHA(),
-        ASM.PUSHB(),      #return addr
+        ASM.CALL('FIB'),     # fib(n-1)
+        ASM.POPA(),
+        ASM.PUSHB(),         # save B = fib(n-1)
+        ASM.DECA(1),         # n-2
+        ASM.CALL('FIB'),     # B = fib(n-2)
+        ASM.POPA(),          # A = saved B = fib(n-1)
+        ASM.ADDAB(),         # A = fib(n-1) + fib(n-2)
+        ASM.PUSHA(),
+        ASM.POPB(),          # B = fib(n-1) + fib(n-2)
+        ASM.LABEL('RETORNO'),
         ASM.RET(),
 
-        ASM.LABEL('START'),
-        ASM.IO(),
-        ASM.STORA('12'),
-        ASM.STORB('12'),
-        ASM.PUSHA(),
-        ASM.CALL('FIB'),
-        ASM.CALL('FIB'),
-        ASM.CALL('FIB'),
-        ASM.LABEL('END'),
         ASM.EXIT(1)
         ])
+
+    kernel.fileSystem.write("/bin/exit", Program([
+        ASM.HEADER(4),
+        ASM.STORB('49'),
+        ASM.STORA('100'),
+        ASM.JMP('O'),
+
+        ASM.LABEL('A'),
+        ASM.PUSHB(),
+        ASM.PUSHA(),
+        ASM.PUSHA(),
+        ASM.POPA(),
+        ASM.POPB(),
+        ASM.POPA(),
+        ASM.RET(),
+
+        ASM.LABEL('O'),
+        ASM.CALL('A'),
+        ASM.DECB(2)
+
+        ]))
+
     kernel.fileSystem.write("/fib", fib)
     kernel.fileSystem.write("/bin/calltest", calltest)
-    kernel.fileSystem.write("/bin/exit", Program([ASM.INCA(2)]))
     kernel.fileSystem.write("/prg1", prg1)
     kernel.fileSystem.write("/prg2", prg2)
     kernel.fileSystem.write("/prg3", prg3)
