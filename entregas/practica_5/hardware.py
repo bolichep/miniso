@@ -6,26 +6,28 @@ from threading import Thread, Lock
 import log
 
 ##  Estas son la instrucciones soportadas por nuestro CPU
-INSTRUCTION_IO = 'IO'
-INSTRUCTION_CPU = 'CPU'
-INSTRUCTION_STORA = 'STORA'
-INSTRUCTION_STORB = 'STORB'
-INSTRUCTION_INCA = 'INCA'
-INSTRUCTION_DECA = 'DECA'
-INSTRUCTION_INCB = 'INCB'
-INSTRUCTION_DECB = 'DECB'
-INSTRUCTION_CAB = 'CAB'
-INSTRUCTION_JZ = 'JZ'
+INSTRUCTION_HEADER = 'HEADER'
+INSTRUCTION_LABEL = 'LABEL'
 INSTRUCTION_JNZ = 'JNZ'
+INSTRUCTION_JZ = 'JZ'
 INSTRUCTION_JMP = 'JMP'
 INSTRUCTION_CALL = 'CALL'
 INSTRUCTION_RET = 'RET'
-INSTRUCTION_POPA = 'POPA'
+INSTRUCTION_STORA = 'STORA'
+INSTRUCTION_STORB = 'STORB'
+INSTRUCTION_DECA = 'DECA'
+INSTRUCTION_INCA = 'INCA'
+INSTRUCTION_INCB = 'INCB'
+INSTRUCTION_DECB = 'DECB'
+INSTRUCTION_ADDAB = 'ADDAB'
+INSTRUCTION_CMPAB = 'CMPAB'
 INSTRUCTION_PUSHA = 'PUSHA'
-INSTRUCTION_POPB = 'POPB'
+INSTRUCTION_POPA = 'POPA'
 INSTRUCTION_PUSHB = 'PUSHB'
+INSTRUCTION_POPB = 'POPB'
 INSTRUCTION_EXIT = 'EXIT'
-
+INSTRUCTION_IO = 'IO'
+INSTRUCTION_CPU = 'CPU'
 
 ## Helper for emulated machine code
 class ASM():
@@ -140,8 +142,14 @@ class ASM():
         return instr
 
     @classmethod
-    def CAB(self, times):
-        instr =  [INSTRUCTION_CAB] * times
+    def ADDAB(self):
+        instr =  [INSTRUCTION_ADDAB]
+        self.addrCounter += len(instr)
+        return instr
+
+    @classmethod
+    def CMPAB(self):
+        instr =  [INSTRUCTION_CMPAB]
         self.addrCounter += len(instr)
         return instr
 
@@ -468,6 +476,15 @@ class Cpu():
             self._bc += 1
             self._zf = (self._bc == 0)
             print("INCB Instruction")
+
+        if self._ir == 'ADDAB':
+            self._ac += self._bc
+            self._zf = self._ac == 0
+            print("ADDAB Instruction")
+
+        if self._ir == 'CMPAB':
+            self._zf = self._ac == self._bc
+            print("CMPAB Instruction")
 
         if self._ir == 'JMP': #Jump absoluto
             self._pc = int(self._mmu.fetch(self._pc))
