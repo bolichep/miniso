@@ -383,11 +383,10 @@ class Loader():
         if not pages:
             raise Exception("\x9B37;44m\x9B2J\x9B12;18HException: No Hay memoria. [BSOD]... o demandá ;P \x9B14;18H(!!!)\x9B0m")
         
-        # WARN aqui estan nombrados mal pageId offset
         for instAddr in range(0, progSize):
-            pageId = instAddr % self._mm._frameSize
-            offset = pages[instAddr // self._mm._frameSize]
-            physicalAddress = pageId + offset * self._mm._frameSize
+            offset = instAddr % self._mm._frameSize
+            pageId = pages[instAddr // self._mm._frameSize]
+            physicalAddress = offset + pageId * self._mm._frameSize
             inst = programCode.instructions[instAddr]
             self._mm.memory.put(physicalAddress, inst)
             print(physicalAddress, inst)
