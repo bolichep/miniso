@@ -16,6 +16,7 @@ INSTRUCTION_INCB = 'INCB'
 INSTRUCTION_DECB = 'DECB'
 INSTRUCTION_CAB = 'CAB'
 INSTRUCTION_JZ = 'JZ'
+INSTRUCTION_JNZ = 'JNZ'
 INSTRUCTION_JMP = 'JMP'
 INSTRUCTION_CALL = 'CALL'
 INSTRUCTION_RET = 'RET'
@@ -67,6 +68,13 @@ class ASM():
     def LABEL(self, labelName):
         self.symbols[labelName] = self.addrCounter
         return [] # must i return? TODO
+
+    @classmethod
+    def JNZ(self, address):
+        #address = self.__addrInTable(address)
+        instr =  [INSTRUCTION_JNZ, str(address)]
+        self.addrCounter += len(instr)
+        return instr
 
     @classmethod
     def JZ(self, address):
@@ -386,6 +394,7 @@ class Cpu():
     def _fetch(self):
         self._ir = self._mmu.fetch(self._pc)
         self._pc += 1
+        #print("fetch: pc={}  ir={}".format( self._pc, self._ir))
 
     def _decode(self):
         if self._ir == 'IO':
@@ -397,10 +406,9 @@ class Cpu():
             print("\x9B0m", end="")
 
         if self._ir == 'CALL':
-            self._fetch()
             self._sp += 1
-            self._mmu.write(self._sp, self._pc)
-            self._pc = int(self._ir)
+            self._mmu.write(self._sp, self._pc + 1)
+            self._pc = int(self._mmu.fetch(self._pc))
             print("CALL instruction")
 
         if self._ir == 'RET':
@@ -462,15 +470,24 @@ class Cpu():
             print("INCB Instruction")
 
         if self._ir == 'JMP': #Jump absoluto
-            self._fetch()
-            self._pc = int(self._ir)
-            print("JMP {} Instruction".format(self._ir))
+            self._pc = int(self._mmu.fetch(self._pc))
+            print("JMP {} Instruction".format(self._pc))
 
-        if self._ir == 'JZ':
-            self._fetch()
-            print("JZ {} Instruction zf={}".format(self._ir, self._zf))
+        if self._ir == 'JNZ': # absoluto
+            print("JNZ {} Instruction zf={}".format(
+                       self._mmu.fetch(self._pc), self._zf))
+            if not self._zf:
+                self._pc = int(self._mmu.fetch(self._pc))
+            else:
+                self._pc += 1
+
+        if self._ir == 'JZ': # absoluto
+            print("JZ {} Instruction zf={}".format(
+                       self._mmu.fetch(self._pc), self._zf))
             if self._zf:
-                self._pc += int(self._ir)
+                self._pc = int(self._mmu.fetch(self._pc))
+            else:
+                self._pc += 1
 
         pass
 
@@ -485,7 +502,7 @@ class Cpu():
             ioInIRQ = IRQ(IO_IN_INTERRUPTION_TYPE, self._ir)
             self._interruptVector.handle(ioInIRQ)
         else:
-            log.logger.info("cpu - Exec: {instr}, PC={pc} A={ac} B={bc} SP={sp} zflag={z}".format(instr=self._ir, pc=self._pc, ac=self._ac, bc=self._bc, sp=self._sp, z=self._zf))
+            log.logger.info("cpu - Exec: {instr:<6}, PC={pc:>3} A={ac:>3} B={bc:>3} SP={sp:>3} zflag={z}".format(instr=self._ir, pc=self._pc, ac=self._ac, bc=self._bc, sp=self._sp, z=self._zf))
 
 
     def isBusy(self):
