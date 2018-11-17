@@ -9,6 +9,7 @@ from enum import Enum
 class Program():
 
     def __init__(self, instructions):
+        ASM.reset()
         self._instructions = self.expand(instructions)
 
     @property
@@ -34,7 +35,7 @@ class Program():
         if not ASM.isEXIT(last):
             expanded.append(INSTRUCTION_EXIT)
 
-        return expanded
+        return ASM.secondPass(expanded)
 
     def __repr__(self):
         return "Program({instructions})".format(instructions=self._instructions)
@@ -382,6 +383,7 @@ class Loader():
         if not pages:
             raise Exception("\x9B37;44m\x9B2J\x9B12;18HException: No Hay memoria. [BSOD]... o demandá ;P \x9B14;18H(!!!)\x9B0m")
         
+        # WARN aqui estan nombrados mal pageId offset
         for instAddr in range(0, progSize):
             pageId = instAddr % self._mm._frameSize
             offset = pages[instAddr // self._mm._frameSize]
@@ -594,6 +596,10 @@ class MemoryManager:
         self._pageTables = dict()
 
     def allocFrames(self, numberOfCells):
+        # WARN
+        #calculo afuera
+        # el loader calcula los frames
+        # memory manager recibe frames
         framesToAlloc = 1 if numberOfCells % self._frameSize else 0
         framesToAlloc += numberOfCells // self._frameSize
         if framesToAlloc <= len(self._freeFrames):
