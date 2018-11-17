@@ -379,6 +379,9 @@ class Loader():
     def load(self, path):
         programCode = self._fs.read(path)
         progSize = len(programCode.instructions)
+        # WARN here we need to alloc just one frame
+        # so ... we must do the math here (now done at allocFrames)
+        # and rename and rework things (ie I ask for ONE frame)
         pages = self._mm.allocFrames(progSize)
         if not pages:
             raise Exception("\x9B37;44m\x9B2J\x9B12;18HException: No Hay memoria. [BSOD]... o demandá ;P \x9B14;18H(!!!)\x9B0m")
