@@ -7,6 +7,7 @@ import readline
 
 class shell():
     help_c = """
+    eval expresión : realiza un eval del codigo python expresado
     nolog          : suprime la salida de log.logger
     log            : habilita la salida de log.logger
     start          : enciende el hardware
@@ -24,13 +25,10 @@ class shell():
     save name code : salva el codigo en 'code' bajo el nombre 'name'
                      ej: save uno CPU,IO,CPU,EXIT
     load name      : carga el codigo bajo el nombre 'name' para ser usado en run
-    run            : corre el codigo previamente cargado con load
+    run path       : corre el codigo previamente cargado con load
+    loadreset      : ...........
     """
 
-    fs = dict()
-    fs.update({'uno':'CPU,CPU,IO,CPU,CPU,CPU,IO,CPU,CPU'})
-    fs.update({'dos':'CPU,CPU,CPU,CPU,IO,CPU'})
-    fs.update({'tres':'JMP,2,CPU,EXIT'})
 
     def com(kernel):
         #log.logger.setLevel(60) # apago el log
@@ -57,9 +55,6 @@ class shell():
                     if comandos[0] == 'ls':
                         for f  in kernel.fileSystem.root:
                             print("{:<8} {}".format(f, kernel.fileSystem.root.get(f)))
-
-                        for f in shell.fs:
-                            print("{:<8} {}".format(f, shell.fs.get(f)))
 
                     if comandos[0] == 'save':
                         kernel.fileSystem.write(comandos[1], 
