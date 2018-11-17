@@ -385,6 +385,7 @@ class Cpu():
         self._interruptVector = interruptVector
         self._pc = -1
         self._ir = None
+        self._or = None
         self._ac = 0
         self._bc = 0
         self._zf = True
@@ -402,6 +403,9 @@ class Cpu():
     def _fetch(self):
         self._ir = self._mmu.fetch(self._pc)
         self._pc += 1
+        if self.isOOI(self._ir):
+            self._or = self._mmu.fetch(self._pc)
+            self._pc += 1
         #print("fetch: pc={}  ir={}".format( self._pc, self._ir))
 
     def _decode(self):
@@ -415,8 +419,8 @@ class Cpu():
 
         if self._ir == 'CALL':
             self._sp += 1
-            self._mmu.write(self._sp, self._pc + 1)
-            self._pc = int(self._mmu.fetch(self._pc))
+            self._mmu.write(self._sp, self._pc )
+            self._pc = int(self._or)
             print("CALL instruction")
 
         if self._ir == 'RET':
@@ -448,13 +452,11 @@ class Cpu():
             print("CPU Instruction")
 
         if self._ir == 'STORA':
-            self._fetch()
-            self._ac = int(self._ir)
+            self._ac = int(self._or)
             print("STORA Instruction")
 
         if self._ir == 'STORB':
-            self._fetch()
-            self._bc = int(self._ir)
+            self._bc = int(self._or)
             print("STORB Instruction")
 
         if self._ir == 'DECA':
@@ -487,29 +489,33 @@ class Cpu():
             print("CMPAB Instruction")
 
         if self._ir == 'JMP': #Jump absoluto
-            self._pc = int(self._mmu.fetch(self._pc))
+            self._pc = int(self._or)
             print("JMP {} Instruction".format(self._pc))
 
         if self._ir == 'JNZ': # absoluto
             print("JNZ {} Instruction zf={}".format(
-                       self._mmu.fetch(self._pc), self._zf))
+                       self._or, self._zf))
             if not self._zf:
-                self._pc = int(self._mmu.fetch(self._pc))
-            else:
-                self._pc += 1
+                self._pc = int(self._or)
 
         if self._ir == 'JZ': # absoluto
             print("JZ {} Instruction zf={}".format(
-                       self._mmu.fetch(self._pc), self._zf))
+                       self._or, self._zf))
             if self._zf:
-                self._pc = int(self._mmu.fetch(self._pc))
-            else:
-                self._pc += 1
+                self._pc = int(self._or)
 
         pass
 
     def __repr__(self):
         return "cpu - IR={instr}, PC={pc} A={ac} B={bc} SP={sp} zflag={z}".format(instr=self._ir, pc=self._pc, ac=self._ac, bc=self._bc, sp=self._sp, z=self._zf)
+
+    # is Zero Operand Instruction
+    def isZOI(self, ir):
+        return not self.isOOI(ir)
+
+    # is One Operand Instruction
+    def isOOI(self, ir):
+        return ( ir in ['JNZ', 'JZ', 'JMP', 'CALL', 'STORA', 'STORB'])
 
     def _execute(self):
         if ASM.isEXIT(self._ir):
@@ -519,7 +525,15 @@ class Cpu():
             ioInIRQ = IRQ(IO_IN_INTERRUPTION_TYPE, self._ir)
             self._interruptVector.handle(ioInIRQ)
         else:
-            log.logger.info("cpu - Exec: {instr:<6}, PC={pc:>3} A={ac:>3} B={bc:>3} SP={sp:>3} zflag={z}".format(instr=self._ir, pc=self._pc, ac=self._ac, bc=self._bc, sp=self._sp, z=self._zf))
+            log.logger.info("cpu - Exec: {instr:<6} {op:<3}, PC={pc:>3} A={ac:>3} B={bc:>3} SP={sp:>3} zflag={z}".format(
+                instr = self._ir,
+                op = self._or if self.isOOI(self._ir) else ' ',
+                pc = self._pc,
+                ac = self._ac,
+                bc = self._bc,
+                sp = self._sp,
+                z  = self._zf
+                ))
 
 
     def isBusy(self):
