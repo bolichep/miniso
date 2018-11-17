@@ -61,13 +61,17 @@ class shell():
                                 Program([comandos[2].split(",")]) )
                         #shell.fs.update({comandos[1]: comandos[2]})
 
+                    if comandos[0] == 'poke':
+                        addr = int(comandos[1])
+                        data = comandos[2]
+                        HARDWARE.memory.put(addr, data)
+
                     if comandos[0] == 'load':
                         _code = shell.fs.get(comandos[1])
                         _name = comandos[1]
                         print(_code)
 
                     if comandos[0] == 'run':
-                        #kernel.fileSystem.write(_name, Program([_code.split(",")]) )
                         kernel.run(comandos[1], 3 if len(comandos) < 2 else int(comandos[2]))
 
                     if comandos[0] == 'ticktime':
