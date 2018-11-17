@@ -15,7 +15,7 @@ if __name__ == '__main__':
 
     ## setup our hardware and set memory size to 32 "cells"
     HARDWARE.setup(32)
-    HARDWARE.timeUnit = 0.2
+    HARDWARE.timeUnit = 0.2 * 6
 
     SCHEDULER_FCFS = 'FCFS'
     SCHEDULER_RR = 'RR'
@@ -53,34 +53,65 @@ if __name__ == '__main__':
     # Ahora vamos a intentar ejecutar 3 programas a la vez
     ##################
     prg1 = Program([ASM.CPU(2), ASM.IO(), ASM.CPU(3), ASM.IO(), ASM.CPU(2)])   
-    prg2 = Program([ASM.AI1(3), ASM.CPU(4)])
+    prg2 = Program([ASM.INCA(3), ASM.CPU(4)])
     prg3 = Program([ASM.CPU(4), ASM.IO(), ASM.CPU(1)]) 
 
     # CALL RET Stack TEST
     calltest = Program([
         ASM.HEADER(4),
         ASM.JMP(9),
-        ASM.AI1(1),
-        ASM.BD1(1),
+        ASM.INCA(1),
+        ASM.DECB(1),
         ASM.RET(),
         ASM.CALL(6),
         ASM.CALL(6),
         ASM.CALL(6)
         ])
+    """
+    fib 0 = 0
+    fib 1 = 1
+    fib n = fib (n-1) + fib (n-2) 
+    """
+    fib = Program([
+        ASM.HEADER(4),
+        ASM.JMP('START'),
+        ASM.LABEL('FIB'),
+        ASM.POPB(),       #return addr 
+        ASM.POPA(),
+        ASM.DECA(3),
+        ASM.PUSHA(),
+        ASM.PUSHB(),      #return addr
+        ASM.RET(),
+
+        ASM.LABEL('START'),
+        ASM.IO(),
+        ASM.STORA('12'),
+        ASM.STORB('12'),
+        ASM.PUSHA(),
+        ASM.CALL('FIB'),
+        ASM.CALL('FIB'),
+        ASM.CALL('FIB'),
+        ASM.LABEL('END'),
+        ASM.EXIT(1)
+        ])
+    kernel.fileSystem.write("/fib", fib)
     kernel.fileSystem.write("/bin/calltest", calltest)
-
-
+    kernel.fileSystem.write("/bin/exit", Program([ASM.INCA(2)]))
     kernel.fileSystem.write("/prg1", prg1)
     kernel.fileSystem.write("/prg2", prg2)
     kernel.fileSystem.write("/prg3", prg3)
     # execute all programs "concurrently"
-    kernel.run("/prg1",1)
-    kernel.run("/prg2",0)
-    kernel.run("/prg3",0)
+    #kernel.run("/bin/calltest", 1)
+    #kernel.run("/prg2",0)
+    #kernel.run("/prg3",0)
     #kernel.run("/prg3",2)
-    sleep(32 * HARDWARE.timeUnit)
-    kernel.run("/prg1",1)
-    kernel.run("/prg2",0)
-    kernel.run("/prg3",0)
+    #sleep(32 * HARDWARE.timeUnit)
+    #kernel.run("/prg1",1)
+    #kernel.run("/prg2",0)
+    #kernel.run("/prg3",0)
+
+    #kernel.run("/bin/exit", 4)
+    #kernel.run("/bin/calltest", 1)
+    kernel.run("/fib", 3)
 
     shell.com(kernel)
