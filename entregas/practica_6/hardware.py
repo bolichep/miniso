@@ -242,9 +242,9 @@ class MMU():
         self._frameSize = frameSize
 
     def updateTLB(self, pageNumber, page):
-        print ("before updating tlb ", self._tlb)
+        #print ("before updating tlb ", self._tlb)
         self._tlb.update({pageNumber :page})
-        print ("updated tlb ", self._tlb)
+        #print ("updated tlb ", self._tlb)
         
 
     def resetTLB(self):
@@ -254,6 +254,7 @@ class MMU():
         self._tlb[pageId] = frameId
 
     def logicalToPhysicalAddress(self, logicalAddress):
+        #print("contenido de tlb",self._tlb)
         if (logicalAddress > self._limit):
             raise Exception("Invalid Address,  {logicalAddress} is higher than process limit: {limit}".format(limit = self._limit, logicalAddress = logicalAddress))
 
@@ -265,17 +266,12 @@ class MMU():
         try:
             page = self._tlb[pageId]
         except:
-            raise Exception("\n*\n* ERROR \n*\n Error en el MMU\nNo se cargo la pagina  {pageId}".format(pageId = str(pageId)))
-
-        print("isValid ", page.isValid)
+            raise Exception("\n*\n* ERROR \n*\n Error en el Proceso\nNo tiene Pagina {pageId}".format(pageId = str(pageId)))
         if not page.isValid:
             pageFaultIRQ = IRQ(PAGE_FAULT_INTERRUPTION_TYPE, pageId) ##TODO pasar pageID para saber donde cargarlo.
             HARDWARE.cpu._interruptVector.handle(pageFaultIRQ)
-            page = self._tlb[pageId]
 
-        print("page ", page)
         frameId = page.frame
-        print("frameId ", frameId )
         ##calculamos la direccion fisica resultante
         frameBaseDir  = self._frameSize * frameId
         physicalAddress = frameBaseDir + offset

@@ -46,12 +46,12 @@ if __name__ == '__main__':
 
     ## new create the Operative System Kernel
     # "booteamos" el sistema operativo
-    kernel = Kernel(HARDWARE,scheduler, frameSize = 8)
+    kernel = Kernel(HARDWARE,scheduler, frameSize = 4)
     # sleep(1)
 
     # Ahora vamos a intentar ejecutar 3 programas a la vez
     ##################
-    prg1 = Program([ASM.CPU(2), ASM.IO(), ASM.CPU(3), ASM.IO(), ASM.CPU(2)])   
+    prg1 = Program([ASM.CPU(1), ASM.IO(), ASM.IO(), ASM.CPU(2)])  
     prg2 = Program([ASM.AI1(3), ASM.CPU(4)])
     prg3 = Program([ASM.CPU(4), ASM.IO(), ASM.CPU(1)]) 
 
@@ -61,11 +61,11 @@ if __name__ == '__main__':
     # execute all programs "concurrently"
     kernel.run("prg1.exe",1)
     kernel.run("prg2.exe",0)
-    kernel.run("prg3.exe",0)
+   # kernel.run("prg3.exe",0)
     #kernel.run("prg3.exe",2)
     sleep(16)
-    kernel.run("prg1.exe",1)
-    kernel.run("prg2.exe",0)
-    kernel.run("prg3.exe",0)
+   # kernel.run("prg1.exe",1)
+   # kernel.run("prg2.exe",0)
+   # kernel.run("prg3.exe",0)
 
     shell.com(kernel)

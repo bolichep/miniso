@@ -143,8 +143,8 @@ class KillInterruptionHandler(AbstractInterruptionHandler):
         pcb = self.kernel.pcbTable.runningPCB 
         self.contextSwitchFromRunningTo(State.sterminated)
         pages= self.kernel.memoryManager.getPageTable(pcb.pid)
-
-        self.kernel._memoryManager.freeFrames(pages)
+        for i in range(0, len(pages)):
+            self.kernel._memoryManager.freeFrames(pages[i].returnFrame)
 
 
 class NewInterruptionHandler(AbstractInterruptionHandler):
@@ -155,8 +155,10 @@ class NewInterruptionHandler(AbstractInterruptionHandler):
         log.logger.info("New loading {} {}".format(programName, priority))
         pages = self.kernel.loader.create(programName)
         limit = self.kernel.loader.codeSize(programName)
-        pcb = ProcessControlBlock(programName, priority, limit)
+        
+        pcb = ProcessControlBlock(programName, priority)
         pcb.state = State.snew
+        pcb.limit = limit
         self.kernel.memoryManager.putPageTable(pcb.pid, pages)
         self.kernel.pcbTable.update(pcb) #add pcb
         # to ready or running
@@ -206,9 +208,9 @@ class PageFaultInterruptionHandler(AbstractInterruptionHandler):
         pageNumber = irq.parameters
         page = self.kernel.memoryManager.getPage(self.kernel.pcbTable.runningPCB.pid, pageNumber)
         page.frame = freeFrame
-        print("freeFrame ", freeFrame)
+        #print("freeFrame ", freeFrame)
         self.kernel.loader.loadPage(runningPCB.path, pageNumber, freeFrame)
-        print("page to update ", page)
+        #print("page to update ", page)
         self.kernel.memoryManager.setPage(runningPCB.pid, pageNumber, page)
         self.kernel.hardware.mmu.updateTLB(pageNumber, page)
         log.logger.info(self._kernel.hardware)
@@ -222,9 +224,11 @@ class Dispacher():
         #HARDWARE.cpu.pc = pcb.pc
         HARDWARE.cpu.context = pcb.context #all reg in a big tuple
         HARDWARE.mmu.baseDir = pcb.baseDir
-        ##HARDWARE.mmu.limit = pcb.limit
+        #print("Limite del pcb actual es:", pcb.limit, "el pcb es", pcb.pid)
+        HARDWARE.mmu.limit = pcb.limit
         HARDWARE.mmu.resetTLB()
         pages = self._kernel.memoryManager.getPageTable(pcb.pid)
+        #print("cantidad de paginas a cargar en la pagetable", len(pages))
         #pages = pcb.pages
         for page in range(0, len(pages)):
             HARDWARE.mmu.setPageFrame(page, pages[page])
@@ -243,7 +247,7 @@ class Dispacher():
         HARDWARE.clock.addSubscriber(subscriber)
 
 
-#enum states of a process(mio)
+#enum states of a process
 class State(Enum):
     snew = 0
     sready = 1
@@ -294,7 +298,7 @@ class PcbTable():
         return "PCBTable:\n {}".format(self._tablePcb)
 
 
-#pid counter
+# pid counter
 class pid():
     number = 0
 
@@ -304,15 +308,15 @@ class pid():
         return self.number
 
 
-# emulates a  pcb(creado por mi :S)
+# emulate a pcb
 class ProcessControlBlock():
 
-    def __init__(self, programName, priority, pages = [], baseDir = 0, limit = 0):
+    def __init__(self, programName, priority, pages = [], baseDir = 0):
         self._pid = pid.new()
         self._baseDir = baseDir
-        self._limit = limit
+        self._limit = 0
         self._pc  = 0 # TODO check if keep that
-        self._state =State.snew
+        self._state = State.snew
         # well knew cpu reset state
         self._context = (0, 0, 0, -1, True) # keep sync with hardware#330
         self._path = programName
@@ -353,10 +357,10 @@ class ProcessControlBlock():
     @property
     def limit(self):
         return self._limit
-
-    @baseDir.setter
+    
+    @limit.setter
     def limit(self, value):
-       self._limit = value
+        self._limit = value
 
     @property
     def pc(self):
@@ -395,7 +399,6 @@ class Loader():
         self._memoryPos = value
 
     def codeSize(self, path):
-        print("Tamanio de Programa ", len((self._fs.read(path)).instructions))
         return len((self._fs.read(path)).instructions)
 
     def create(self, path):
@@ -405,12 +408,10 @@ class Loader():
         pagesToCreate = programSize // self._mm._frameSize
         pages = []
 
-        if (programSize % self._mm._frameSize == 0):
-            pagesToCreate + 1
-
+        if (programSize % self._mm._frameSize > 0):
+            pagesToCreate += 1
         for x in range(0, pagesToCreate):
             pages.append(Page())
-
         return pages
 
         
@@ -418,9 +419,12 @@ class Loader():
 
         programCode = self._fs.read(path)
 
-
+        instrFrom= pageId * self._mm._frameSize
+        rest = len(programCode.instructions) - instrFrom 
+        res = min( rest, self._mm._frameSize)
+        instrUntil= instrFrom + res
        
-        for instAddr in range(pageId * self._mm._frameSize, pageId * self._mm._frameSize + self._mm._frameSize):
+        for instAddr in range(instrFrom, instrUntil):
             offset = instAddr % self._mm._frameSize
             pageNumber = instAddr // self._mm._frameSize
             physicalAddress = offset + frameId * self._mm._frameSize
@@ -636,21 +640,30 @@ class Page:
     @property
     def frame(self):
         res = self._frame
-        self._frame = None
-        self._validBit= False
         return res
     
     @frame.setter
     def frame(self, frame):
          self._frame = frame
-         self._validBit= True
-    
-
+         self._validBit =  True
     @property
-    def setChance(self, int):
+    def returnFrame(self):
+        self._vaildBit = False
+        return self._frame
+    
+    @property
+    def chance(self):
+        return self._chance
+    @chance.setter
+    def chance(self, int):
         self._chance = int
+
     
-    
+class SecondChance:
+    def chooseUne(self):
+       
+
+
 
 class MemoryManager:
 
@@ -659,6 +672,7 @@ class MemoryManager:
         self._freeFrames = [x for x in range (0,(memory.getLeng() // frameSize)) ]
         self._frameSize = frameSize
         self._pageTables = dict()
+        self._victimSelector = SecondChance(self)
 
     def allocFrames(self, numberOfFrames):
         if numberOfFrames <= len(self._freeFrames):
@@ -671,11 +685,13 @@ class MemoryManager:
 
     def freeFrames(self, frames):
         #print("Freeing: ", frames, "Prev Frees: ", self._freeFrames)
-        self._freeFrames += frames
+        self._freeFrames.append(frames)
         #print("Current Frees: ", self._freeFrames)
 
     def getFreeFrame(self):
         #precondicion: tengo frames libres
+            if not self.hasFreeFrame():
+                self.chooseVictim()
             return self._freeFrames.pop(0)
 
     def hasFreeFrame(self):
@@ -685,6 +701,13 @@ class MemoryManager:
     def getPage(self, pid, pageNumber):
         process = self._pageTables[pid]
         return process[pageNumber]
+
+    def chooseVictim(self):
+        pid, page = self.victimSelector.chooseone()
+        print("pagina a Desalojar", page)
+        newFreeFrame = page.returnFrame
+        print("pagina desalojada",page)
+        print("Estado de la page table", pageTables)
 
     def setPage(self, pid, pageNumber, page):
         process = self._pageTables[pid]
