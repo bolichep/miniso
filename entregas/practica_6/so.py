@@ -659,8 +659,8 @@ class Page:
         self._chance = int
 
     
-class SecondChance:
-    def chooseUne(self):
+#class SecondChance:
+   # def chooseUne(self):
        
 
 
@@ -672,7 +672,7 @@ class MemoryManager:
         self._freeFrames = [x for x in range (0,(memory.getLeng() // frameSize)) ]
         self._frameSize = frameSize
         self._pageTables = dict()
-        self._victimSelector = SecondChance(self)
+        #self._victimSelector = SecondChance(self)
 
     def allocFrames(self, numberOfFrames):
         if numberOfFrames <= len(self._freeFrames):
@@ -703,11 +703,12 @@ class MemoryManager:
         return process[pageNumber]
 
     def chooseVictim(self):
-        pid, page = self.victimSelector.chooseone()
-        print("pagina a Desalojar", page)
-        newFreeFrame = page.returnFrame
-        print("pagina desalojada",page)
-        print("Estado de la page table", pageTables)
+        raise Exception("\x9B37;44m\x9B2J\x9B12;18HException: No Hay Frames Libres. [BSOD]... Falta Resolver la seleccion de victima :/ \x9B14;18H(!!!)\x9B0m")
+       # pid, page = self.victimSelector.chooseone()
+       # print("pagina a Desalojar", page)
+       # newFreeFrame = page.returnFrame
+       # print("pagina desalojada",page)
+       # print("Estado de la page table", pageTables)
 
     def setPage(self, pid, pageNumber, page):
         process = self._pageTables[pid]
