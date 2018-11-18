@@ -9,7 +9,6 @@ from enum import Enum
 class Program():
 
     def __init__(self, instructions):
-        ASM.reset()
         self._instructions = self.expand(instructions)
 
     @property
@@ -35,7 +34,7 @@ class Program():
         if not ASM.isEXIT(last):
             expanded.append(INSTRUCTION_EXIT)
 
-        return ASM.secondPass(expanded)
+        return expanded
 
     def __repr__(self):
         return "Program({instructions})".format(instructions=self._instructions)
@@ -144,8 +143,8 @@ class KillInterruptionHandler(AbstractInterruptionHandler):
         pcb = self.kernel.pcbTable.runningPCB 
         self.contextSwitchFromRunningTo(State.sterminated)
         pages= self.kernel.memoryManager.getPageTable(pcb.pid)
-
-        self.kernel._memoryManager.freeFrames(pages)
+        for i in range(0, len(pages)):
+            self.kernel._memoryManager.freeFrames(pages[i].returnFrame)
 
 
 class NewInterruptionHandler(AbstractInterruptionHandler):
@@ -154,10 +153,12 @@ class NewInterruptionHandler(AbstractInterruptionHandler):
         programName, programCode, priority = irq.parameters
         priority = 4 if priority > 4 or priority < 0 else priority
         log.logger.info("New loading {} {}".format(programName, priority))
-        pages, baseDir, limit = self.kernel.loader.load(programName)
-        pcb = ProcessControlBlock(programName, priority, baseDir, limit)
+        pages = self.kernel.loader.create(programName)
+        limit = self.kernel.loader.codeSize(programName)
+        
+        pcb = ProcessControlBlock(programName, priority)
         pcb.state = State.snew
-        #pcb.pages = pages
+        pcb.limit = limit
         self.kernel.memoryManager.putPageTable(pcb.pid, pages)
         self.kernel.pcbTable.update(pcb) #add pcb
         # to ready or running
@@ -184,6 +185,7 @@ class IoOutInterruptionHandler(AbstractInterruptionHandler):
         log.logger.info(self.kernel.ioDeviceController)
 
 
+
 class TimeoutInterruptionHandler(AbstractInterruptionHandler):
 
     def execute(self, irq):
@@ -194,6 +196,24 @@ class TimeoutInterruptionHandler(AbstractInterruptionHandler):
         else:
             self.kernel.dispacher.resetTimer()
 
+class PageFaultInterruptionHandler(AbstractInterruptionHandler):
+
+    def execute(self, irq):
+
+         ## MEMORY MANAGER GET FRAME   self.kernel.HARDWARE.MMU.chooseVictim()
+        #self.kernel.memoryManager = updatePageTable() ##DE TLB A MM
+        freeFrame = self.kernel.memoryManager.getFreeFrame()
+        runningPCB = self.kernel.pcbTable.runningPCB
+        #pageNumber = runningPCB.pc  // self.kernel.memoryManager.frameSize
+        pageNumber = irq.parameters
+        page = self.kernel.memoryManager.getPage(self.kernel.pcbTable.runningPCB.pid, pageNumber)
+        page.frame = freeFrame
+        #print("freeFrame ", freeFrame)
+        self.kernel.loader.loadPage(runningPCB.path, pageNumber, freeFrame)
+        #print("page to update ", page)
+        self.kernel.memoryManager.setPage(runningPCB.pid, pageNumber, page)
+        self.kernel.hardware.mmu.updateTLB(pageNumber, page)
+        log.logger.info(self._kernel.hardware)
 
 #emul dispacher
 class Dispacher():
@@ -204,9 +224,11 @@ class Dispacher():
         #HARDWARE.cpu.pc = pcb.pc
         HARDWARE.cpu.context = pcb.context #all reg in a big tuple
         HARDWARE.mmu.baseDir = pcb.baseDir
+        #print("Limite del pcb actual es:", pcb.limit, "el pcb es", pcb.pid)
         HARDWARE.mmu.limit = pcb.limit
         HARDWARE.mmu.resetTLB()
         pages = self._kernel.memoryManager.getPageTable(pcb.pid)
+        #print("cantidad de paginas a cargar en la pagetable", len(pages))
         #pages = pcb.pages
         for page in range(0, len(pages)):
             HARDWARE.mmu.setPageFrame(page, pages[page])
@@ -225,7 +247,7 @@ class Dispacher():
         HARDWARE.clock.addSubscriber(subscriber)
 
 
-#enum states of a process(mio)
+#enum states of a process
 class State(Enum):
     snew = 0
     sready = 1
@@ -276,7 +298,7 @@ class PcbTable():
         return "PCBTable:\n {}".format(self._tablePcb)
 
 
-#pid counter
+# pid counter
 class pid():
     number = 0
 
@@ -286,15 +308,15 @@ class pid():
         return self.number
 
 
-# emulates a  pcb(creado por mi :S)
+# emulate a pcb
 class ProcessControlBlock():
 
-    def __init__(self, programName, priority, pages = [], baseDir = 0, limit = 0):
+    def __init__(self, programName, priority, pages = [], baseDir = 0):
         self._pid = pid.new()
         self._baseDir = baseDir
-        self._limit = limit
+        self._limit = 0
         self._pc  = 0 # TODO check if keep that
-        self._state =State.snew
+        self._state = State.snew
         # well knew cpu reset state
         self._context = (0, 0, 0, -1, True) # keep sync with hardware#330
         self._path = programName
@@ -335,10 +357,10 @@ class ProcessControlBlock():
     @property
     def limit(self):
         return self._limit
-
-    @baseDir.setter
+    
+    @limit.setter
     def limit(self, value):
-       self._limit = value
+        self._limit = value
 
     @property
     def pc(self):
@@ -376,27 +398,39 @@ class Loader():
     def memoryPos(self, value):
         self._memoryPos = value
 
-    def load(self, path):
-        programCode = self._fs.read(path)
-        progSize = len(programCode.instructions)
-        # WARN here we need to alloc just one frame
-        # so ... we must do the math here (now done at allocFrames)
-        # and rename and rework things (ie I ask for ONE frame)
-        pages = self._mm.allocFrames(progSize)
-        if not pages:
-            raise Exception("\x9B37;44m\x9B2J\x9B12;18HException: No Hay memoria. [BSOD]... o demandá ;P \x9B14;18H(!!!)\x9B0m")
-        
-        for instAddr in range(0, progSize):
-            offset = instAddr % self._mm._frameSize
-            pageId = pages[instAddr // self._mm._frameSize]
-            physicalAddress = offset + pageId * self._mm._frameSize
-            inst = programCode.instructions[instAddr]
-            self._mm.memory.put(physicalAddress, inst)
-            #print(physicalAddress, inst)
+    def codeSize(self, path):
+        return len((self._fs.read(path)).instructions)
 
-        # TODO eliminar baseDir
-        baseDir = 0
-        return pages, baseDir, progSize - 1 # limit = progSize - 1
+    def create(self, path):
+
+        programCode = self._fs.read(path)
+        programSize = len(programCode.instructions)
+        pagesToCreate = programSize // self._mm._frameSize
+        pages = []
+
+        if (programSize % self._mm._frameSize > 0):
+            pagesToCreate += 1
+        for x in range(0, pagesToCreate):
+            pages.append(Page())
+        return pages
+
+        
+    def loadPage(self,path, pageId, frameId):
+
+        programCode = self._fs.read(path)
+
+        instrFrom= pageId * self._mm._frameSize
+        rest = len(programCode.instructions) - instrFrom 
+        res = min( rest, self._mm._frameSize)
+        instrUntil= instrFrom + res
+       
+        for instAddr in range(instrFrom, instrUntil):
+            offset = instAddr % self._mm._frameSize
+            pageNumber = instAddr // self._mm._frameSize
+            physicalAddress = offset + frameId * self._mm._frameSize
+            inst = programCode.instructions[instAddr]   
+            self._mm.memory.put(physicalAddress, inst)
+
 
 
 class AbstractScheduler():
@@ -588,6 +622,48 @@ class Fsb:
     def read(self, fname):
         return self._fs.get(fname)
 
+class Page:
+    
+    def __init__(self):
+        self._frame = None
+        self._dirty = False
+        self._chance = 0
+        self._validBit = False
+
+    def __repr__(self):
+        return "<<Page, Frame>>: {} {} {}".format(self._frame, self._dirty, self._chance)
+
+    @property
+    def isValid(self):
+        return self._validBit
+
+    @property
+    def frame(self):
+        res = self._frame
+        return res
+    
+    @frame.setter
+    def frame(self, frame):
+         self._frame = frame
+         self._validBit =  True
+    @property
+    def returnFrame(self):
+        self._vaildBit = False
+        return self._frame
+    
+    @property
+    def chance(self):
+        return self._chance
+    @chance.setter
+    def chance(self, int):
+        self._chance = int
+
+    
+#class SecondChance:
+   # def chooseUne(self):
+       
+
+
 
 class MemoryManager:
 
@@ -596,17 +672,12 @@ class MemoryManager:
         self._freeFrames = [x for x in range (0,(memory.getLeng() // frameSize)) ]
         self._frameSize = frameSize
         self._pageTables = dict()
+        #self._victimSelector = SecondChance(self)
 
-    def allocFrames(self, numberOfCells):
-        # WARN
-        #calculo afuera
-        # el loader calcula los frames
-        # memory manager recibe frames
-        framesToAlloc = 1 if numberOfCells % self._frameSize else 0
-        framesToAlloc += numberOfCells // self._frameSize
-        if framesToAlloc <= len(self._freeFrames):
-            allocatedFrames = self._freeFrames[0:framesToAlloc]
-            self._freeFrames = self._freeFrames[framesToAlloc:]
+    def allocFrames(self, numberOfFrames):
+        if numberOfFrames <= len(self._freeFrames):
+            allocatedFrames = self._freeFrames[0:numberOfFrames]
+            self._freeFrames = self._freeFrames[numberOfFrames:]
         else:
             allocatedFrames = []
         #print("Allocating: ", allocatedFrames, "Frees: ",  self._freeFrames, "FrameSize: ", self._frameSize)
@@ -614,11 +685,47 @@ class MemoryManager:
 
     def freeFrames(self, frames):
         #print("Freeing: ", frames, "Prev Frees: ", self._freeFrames)
-        self._freeFrames += frames
+        self._freeFrames.append(frames)
         #print("Current Frees: ", self._freeFrames)
-     
-    def putPageTable(self, pid, pages):
-        self._pageTables.update({pid: pages})
+
+    def getFreeFrame(self):
+        #precondicion: tengo frames libres
+            if not self.hasFreeFrame():
+                self.chooseVictim()
+            return self._freeFrames.pop(0)
+
+    def hasFreeFrame(self):
+
+        return self._freeFrames
+
+    def getPage(self, pid, pageNumber):
+        process = self._pageTables[pid]
+        return process[pageNumber]
+
+    def chooseVictim(self):
+        raise Exception("\x9B37;44m\x9B2J\x9B12;18HException: No Hay Frames Libres. [BSOD]... Falta Resolver la seleccion de victima :/ \x9B14;18H(!!!)\x9B0m")
+       # pid, page = self.victimSelector.chooseone()
+       # print("pagina a Desalojar", page)
+       # newFreeFrame = page.returnFrame
+       # print("pagina desalojada",page)
+       # print("Estado de la page table", pageTables)
+
+    def setPage(self, pid, pageNumber, page):
+        process = self._pageTables[pid]
+        process[pageNumber] = page
+        self._pageTables.update({pid: process})
+
+    @property
+    def frameSize(self):
+        return self._frameSize
+    
+
+    
+    def newPageTable(self, pid):
+        self._pageTables.update({pid: []})
+
+    def putPageTable(self, pid, page):
+        self._pageTables.update({pid: page})
 
     def getPageTable(self, pid):
         return self._pageTables.get(pid)
@@ -651,6 +758,9 @@ class Kernel():
 
         timeoutHandler = TimeoutInterruptionHandler(self)
         self._hardware.interruptVector.register(TIMEOUT_INTERRUPTION_TYPE, timeoutHandler)
+
+        pageFaultHandler = PageFaultInterruptionHandler(self)
+        self._hardware.interruptVector.register(PAGE_FAULT_INTERRUPTION_TYPE, pageFaultHandler)
 
 
         ## controls the Hardware's I/O Device
@@ -710,6 +820,11 @@ class Kernel():
     @property
     def scheduler(self):
         return self._scheduler
+
+    @property
+    def hardware(self):
+        return self._hardware
+    
 
     def __repr__(self):
         return "Kernel "
