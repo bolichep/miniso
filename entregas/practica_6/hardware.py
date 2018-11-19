@@ -211,6 +211,7 @@ IO_IN_INTERRUPTION_TYPE   = "#IO_IN"
 IO_OUT_INTERRUPTION_TYPE  = "#IO_OUT"
 NEW_INTERRUPTION_TYPE     = "#NEW"
 TIMEOUT_INTERRUPTION_TYPE = "#TIMEOUT"
+PAGE_FAULT_INTERRUPTION_TYPE = "#PAGE_FAULT"
 
 ## emulates an Interrupt request
 class IRQ:
@@ -343,6 +344,9 @@ class MMU():
     def frameSize(self, frameSize):
         self._frameSize = frameSize
 
+    def updateTLB(self, pageNumber, page):
+        self._tlb.update({pageNumber: page})
+
     def resetTLB(self):
         self._tlb = dict()
 
@@ -359,10 +363,16 @@ class MMU():
 
         # buscamos la direccion Base del frame donde esta almacenada la pagina
         try:
-            frameId = self._tlb[pageId]
+            page = self._tlb[pageId]
         except:
             raise Exception("\n*\n* ERROR \n*\n Error en el MMU\nNo se cargo la pagina  {pageId}".format(pageId = str(pageId)))
 
+        if not page.isValid:
+            pageFaultIRQ = IRQ(PAGE_FAULT_INTERRUPTION_TYPE, pageId)
+            HARDWARE.cpu._interruptVector.handle(pageFaultIRQ)
+
+
+        frameId = page.frame
         ##calculamos la direccion fisica resultante
         frameBaseDir  = self._frameSize * frameId
         physicalAddress = frameBaseDir + offset
