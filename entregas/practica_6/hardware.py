@@ -6,86 +6,194 @@ from threading import Thread, Lock
 import log
 
 ##  Estas son la instrucciones soportadas por nuestro CPU
-INSTRUCTION_IO = 'IO'
-INSTRUCTION_CPU = 'CPU'
-INSTRUCTION_AI1 = 'AI1'
-INSTRUCTION_AD1 = 'AD1'
-INSTRUCTION_BI1 = 'BI1'
-INSTRUCTION_BD1 = 'BD1'
-INSTRUCTION_CAB = 'CAB'
+INSTRUCTION_HEADER = 'HEADER'
+INSTRUCTION_LABEL = 'LABEL'
+INSTRUCTION_JNZ = 'JNZ'
 INSTRUCTION_JZ = 'JZ'
 INSTRUCTION_JMP = 'JMP'
 INSTRUCTION_CALL = 'CALL'
 INSTRUCTION_RET = 'RET'
-INSTRUCTION_POPA = 'POPA'
+INSTRUCTION_STORA = 'STORA'
+INSTRUCTION_STORB = 'STORB'
+INSTRUCTION_DECA = 'DECA'
+INSTRUCTION_INCA = 'INCA'
+INSTRUCTION_INCB = 'INCB'
+INSTRUCTION_DECB = 'DECB'
+INSTRUCTION_ADDAB = 'ADDAB'
+INSTRUCTION_CMPAB = 'CMPAB'
 INSTRUCTION_PUSHA = 'PUSHA'
-INSTRUCTION_POPB = 'POPB'
+INSTRUCTION_POPA = 'POPA'
 INSTRUCTION_PUSHB = 'PUSHB'
+INSTRUCTION_POPB = 'POPB'
 INSTRUCTION_EXIT = 'EXIT'
-
+INSTRUCTION_IO = 'IO'
+INSTRUCTION_CPU = 'CPU'
 
 ## Helper for emulated machine code
 class ASM():
 
+    # keep label, address map
+    symbols = dict()
+    # keep current addr assembled
+    addrCounter = 0
+
+
+    @classmethod
+    def reset(self):
+        self.addrCounter = 0
+
+    # replace symbol with address
+    @classmethod
+    def secondPass(self, passOneCode):
+        passTwoCode = []
+        for i in passOneCode:
+            passTwoCode.append(self.__addrInTable(i))
+
+        return passTwoCode
+
+    # return maped value in symbol table map
+    # if it is a string and is on table
+    # else original value
+    @classmethod
+    def __addrInTable(self, value):
+        if isinstance(value, str) and value in self.symbols:
+            value = self.symbols[value]
+        return value
+
     @classmethod
     def HEADER(self, space):
-        return [INSTRUCTION_JMP, str(space)] + ['0']* (space-2) 
+        instr = [INSTRUCTION_JMP, str(space)] + ['0']* (space-2)
+        self.addrCounter += len(instr)
+        return instr
 
     @classmethod
-    def AD1(self, times):
-        return [INSTRUCTION_AD1] * times
+    def LABEL(self, labelName):
+        self.symbols[labelName] = self.addrCounter
+        return [] # must i return? TODO
 
     @classmethod
-    def AI1(self, times):
-        return [INSTRUCTION_AI1] * times
+    def JNZ(self, address):
+        #address = self.__addrInTable(address)
+        instr =  [INSTRUCTION_JNZ, str(address)]
+        self.addrCounter += len(instr)
+        return instr
 
     @classmethod
-    def BI1(self, times):
-        return [INSTRUCTION_BI1] * times
+    def JZ(self, address):
+        #address = self.__addrInTable(address)
+        instr =  [INSTRUCTION_JZ, str(address)]
+        self.addrCounter += len(instr)
+        return instr
 
     @classmethod
-    def BD1(self, times):
-        return [INSTRUCTION_BD1] * times
+    def JMP(self, address):
+        #address = self.__addrInTable(address)
+        instr =  [INSTRUCTION_JMP, str(address)]
+        self.addrCounter += len(instr)
+        return instr
 
     @classmethod
-    def CAB(self, times):
-        return [INSTRUCTION_CAB] * times
-
-    @classmethod
-    def JMP(self, direccion):
-        return [INSTRUCTION_JMP, str(direccion)]
-
-    @classmethod
-    def CALL(self, direccion):
-        return [INSTRUCTION_CALL, str(direccion)]
+    def CALL(self, address):
+        #address = self.__addrInTable(address)
+        instr =  [INSTRUCTION_CALL, str(address)]
+        self.addrCounter += len(instr)
+        return instr
 
     @classmethod
     def RET(self):
-        return [INSTRUCTION_RET]
+        instr =  [INSTRUCTION_RET]
+        self.addrCounter += len(instr)
+        return instr
+
+    @classmethod
+    def STORA(self, value):
+        instr =  [INSTRUCTION_STORA, str(value)]
+        self.addrCounter += len(instr)
+        return instr
+
+    @classmethod
+    def STORB(self, value):
+        instr =  [INSTRUCTION_STORB, str(value)]
+        self.addrCounter += len(instr)
+        return instr
+
+    @classmethod
+    def DECA(self, times):
+        instr =  [INSTRUCTION_DECA] * times
+        self.addrCounter += len(instr)
+        return instr
+
+    @classmethod
+    def INCA(self, times):
+        instr =  [INSTRUCTION_INCA] * times
+        self.addrCounter += len(instr)
+        return instr
+
+    @classmethod
+    def INCB(self, times):
+        instr =  [INSTRUCTION_INCB] * times
+        self.addrCounter += len(instr)
+        return instr
+
+    @classmethod
+    def DECB(self, times):
+        instr =  [INSTRUCTION_DECB] * times
+        self.addrCounter += len(instr)
+        return instr
+
+    @classmethod
+    def ADDAB(self):
+        instr =  [INSTRUCTION_ADDAB]
+        self.addrCounter += len(instr)
+        return instr
+
+    @classmethod
+    def CMPAB(self):
+        instr =  [INSTRUCTION_CMPAB]
+        self.addrCounter += len(instr)
+        return instr
 
     @classmethod
     def PUSHA(self):
-        return [INSTRUCTION_PUSHA]
+        instr =  [INSTRUCTION_PUSHA]
+        self.addrCounter += len(instr)
+        return instr
 
     @classmethod
     def POPA(self):
-        return [INSTRUCTION_POPA]
+        instr =  [INSTRUCTION_POPA]
+        self.addrCounter += len(instr)
+        return instr
 
     @classmethod
-    def JZ(self, direccion):
-        return [INSTRUCTION_JZ, str(direccion)]
+    def PUSHB(self):
+        instr =  [INSTRUCTION_PUSHB]
+        self.addrCounter += len(instr)
+        return instr
+
+    @classmethod
+    def POPB(self):
+        instr =  [INSTRUCTION_POPB]
+        self.addrCounter += len(instr)
+        return instr
 
     @classmethod
     def EXIT(self, times):
-        return [INSTRUCTION_EXIT] * times
+        instr =  [INSTRUCTION_EXIT] * times
+        self.addrCounter += len(instr)
+        return instr
 
     @classmethod
     def IO(self):
-        return INSTRUCTION_IO
+        instr =  [INSTRUCTION_IO]
+        self.addrCounter += len(instr)
+        return instr
 
     @classmethod
     def CPU(self, times):
-        return [INSTRUCTION_CPU] * times
+        instr =  [INSTRUCTION_CPU] * times
+        self.addrCounter += len(instr)
+        return instr
 
     @classmethod
     def isEXIT(self, instruction):
@@ -98,10 +206,10 @@ class ASM():
 
 
 ##  Estas son la interrupciones soportadas por nuestro Kernel
-KILL_INTERRUPTION_TYPE = "#KILL"
-IO_IN_INTERRUPTION_TYPE = "#IO_IN"
-IO_OUT_INTERRUPTION_TYPE = "#IO_OUT"
-NEW_INTERRUPTION_TYPE = "#NEW"
+KILL_INTERRUPTION_TYPE    = "#KILL"
+IO_IN_INTERRUPTION_TYPE   = "#IO_IN"
+IO_OUT_INTERRUPTION_TYPE  = "#IO_OUT"
+NEW_INTERRUPTION_TYPE     = "#NEW"
 TIMEOUT_INTERRUPTION_TYPE = "#TIMEOUT"
 
 ## emulates an Interrupt request
@@ -277,6 +385,7 @@ class Cpu():
         self._interruptVector = interruptVector
         self._pc = -1
         self._ir = None
+        self._or = None
         self._ac = 0
         self._bc = 0
         self._zf = True
@@ -294,6 +403,10 @@ class Cpu():
     def _fetch(self):
         self._ir = self._mmu.fetch(self._pc)
         self._pc += 1
+        if self.isOOI(self._ir):
+            self._or = self._mmu.fetch(self._pc)
+            self._pc += 1
+        #print("fetch: pc={}  ir={}".format( self._pc, self._ir))
 
     def _decode(self):
         if self._ir == 'IO':
@@ -307,11 +420,10 @@ class Cpu():
             pass
 
         if self._ir == 'CALL':
-            self._fetch()
             self._sp += 1
-            self._mmu.write(self._sp, self._pc)
-            self._pc = int(self._ir)
-            #print("CALL instruction")
+            self._mmu.write(self._sp, self._pc )
+            self._pc = int(self._or)
+            print("CALL instruction")
 
         if self._ir == 'RET':
             self._pc = self._mmu.fetch(self._sp)
@@ -342,38 +454,71 @@ class Cpu():
             #print("CPU Instruction")
             pass
 
-        if self._ir == 'AD1':
+        if self._ir == 'STORA':
+            self._ac = int(self._or)
+            print("STORA Instruction")
+
+        if self._ir == 'STORB':
+            self._bc = int(self._or)
+            print("STORB Instruction")
+
+        if self._ir == 'DECA':
             self._ac -= 1
-            self._zf = (self._ac == 0) 
-            #print("AD1 Instruction")
+            self._zf = (self._ac == 0)
+            print("DECA Instruction")
 
-        if self._ir == 'AI1':
+        if self._ir == 'INCA':
             self._ac += 1
-            self._zf = (self._ac == 0) 
-            #print("AI1 Instruction")
+            self._zf = (self._ac == 0)
+            print("INCA Instruction")
 
-        if self._ir == 'BD1':
+        if self._ir == 'DECB':
             self._bc -= 1
-            self._zf = (self._bc == 0) 
-            #print("BD1 Instruction")
+            self._zf = (self._bc == 0)
+            print("DECB Instruction")
 
-        if self._ir == 'BI1':
+        if self._ir == 'INCB':
             self._bc += 1
-            self._zf = (self._bc == 0) 
-            #print("BI1 Instruction")
+            self._zf = (self._bc == 0)
+            print("INCB Instruction")
 
-        if self._ir == 'JMP':
-            self._fetch()
-            self._pc = int(self._ir)
-            #print("JMP {} Instruction".format(self._ir))
+        if self._ir == 'ADDAB':
+            self._ac += self._bc
+            self._zf = self._ac == 0
+            print("ADDAB Instruction")
 
-        if self._ir == 'JZ':
-            self._fetch()
-            #print("JZ {} Instruction zf={}".format(self._ir, self._zf))
+        if self._ir == 'CMPAB':
+            self._zf = self._ac == self._bc
+            print("CMPAB Instruction")
+
+        if self._ir == 'JMP': #Jump absoluto
+            self._pc = int(self._or)
+            print("JMP {} Instruction".format(self._pc))
+
+        if self._ir == 'JNZ': # absoluto
+            print("JNZ {} Instruction zf={}".format(
+                       self._or, self._zf))
+            if not self._zf:
+                self._pc = int(self._or)
+
+        if self._ir == 'JZ': # absoluto
+            print("JZ {} Instruction zf={}".format(
+                       self._or, self._zf))
             if self._zf:
-                self._pc += int(self._ir)
+                self._pc = int(self._or)
 
         pass
+
+    def __repr__(self):
+        return "cpu - IR={instr}, PC={pc} A={ac} B={bc} SP={sp} zflag={z}".format(instr=self._ir, pc=self._pc, ac=self._ac, bc=self._bc, sp=self._sp, z=self._zf)
+
+    # is Zero Operand Instruction
+    def isZOI(self, ir):
+        return not self.isOOI(ir)
+
+    # is One Operand Instruction
+    def isOOI(self, ir):
+        return ( ir in ['JNZ', 'JZ', 'JMP', 'CALL', 'STORA', 'STORB'])
 
     def _execute(self):
         if ASM.isEXIT(self._ir):
@@ -383,7 +528,15 @@ class Cpu():
             ioInIRQ = IRQ(IO_IN_INTERRUPTION_TYPE, self._ir)
             self._interruptVector.handle(ioInIRQ)
         else:
-            log.logger.info("cpu - Exec: {instr}, PC={pc} A={ac} B={bc} SP={sp} zflag={z}".format(instr=self._ir, pc=self._pc, ac=self._ac, bc=self._bc, sp=self._sp, z=self._zf))
+            log.logger.info("cpu - Exec: {instr:<6} {op:<3}, PC={pc:>3} A={ac:>3} B={bc:>3} SP={sp:>3} zflag={z}".format(
+                instr = self._ir,
+                op = self._or if self.isOOI(self._ir) else ' ',
+                pc = self._pc,
+                ac = self._ac,
+                bc = self._bc,
+                sp = self._sp,
+                z  = self._zf
+                ))
 
 
     def isBusy(self):
