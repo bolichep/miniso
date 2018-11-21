@@ -679,14 +679,14 @@ class SecondChance:
         ret = None
         while iterator <= maxIt and ret == None:
             ret = self.selectVictim(usedFrames[iterator])
+            iterator += 1
             if maxIt <= iterator:
                 iterator=0
-            iterator += 1
 
         return ret
 
     def selectVictim(self, page):
-        #print("Pagina que intento desalojar: ", page)
+        print("Pagina que intento desalojar: ", page)
         if page.chance == 1:
             page.chance = 0
         else:
