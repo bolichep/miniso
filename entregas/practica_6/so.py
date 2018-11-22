@@ -99,6 +99,7 @@ class AbstractInterruptionHandler():
             self.kernel.pcbTable.update(prevPCB)
         if self.kernel.scheduler.hasNext():
             nextPCB = self.kernel.scheduler.getNext()
+            print("Siguiente pcb ", nextPCB)
             nextPCB.state = State.srunning
             self.kernel.pcbTable.runningPCB = nextPCB
             self.kernel.pcbTable.update(nextPCB)
@@ -153,10 +154,9 @@ class NewInterruptionHandler(AbstractInterruptionHandler):
         programName, programCode, priority = irq.parameters
         priority = 4 if priority > 4 or priority < 0 else priority
         log.logger.info("New loading {} {}".format(programName, priority))
-        pages = self.kernel.loader.create(programName)
-        limit = self.kernel.loader.codeSize(programName)
-        
         pcb = ProcessControlBlock(programName, priority)
+        pages = self.kernel.loader.create(programName, pcb.pid)
+        limit = self.kernel.loader.codeSize(programName)
         pcb.state = State.snew
         pcb.limit = limit
         self.kernel.memoryManager.putPageTable(pcb.pid, pages)
@@ -230,6 +230,7 @@ class Dispacher():
         pages = self._kernel.memoryManager.getPageTable(pcb.pid)
         #print("cantidad de paginas a cargar en la pagetable", len(pages))
         #pages = pcb.pages
+        print("Paginas a cargar: ", pages)
         for page in range(0, len(pages)):
             HARDWARE.mmu.setPageFrame(page, pages[page])
         HARDWARE.timer.reset()
@@ -401,7 +402,7 @@ class Loader():
     def codeSize(self, path):
         return len((self._fs.read(path)).instructions)
 
-    def create(self, path):
+    def create(self, path, pid):
 
         programCode = self._fs.read(path)
         programSize = len(programCode.instructions)
@@ -411,11 +412,12 @@ class Loader():
         if (programSize % self._mm._frameSize > 0):
             pagesToCreate += 1
         for x in range(0, pagesToCreate):
-            pages.append(Page())
+            pages.append(Page(pid))
         return pages
 
         
-    def loadPage(self,path, pageId, frameId):
+    def loadPage(self, path, pageId, frameId):
+        print("Frame a alocar: ", frameId)
 
         programCode = self._fs.read(path)
 
@@ -624,14 +626,15 @@ class Fsb:
 
 class Page:
     
-    def __init__(self):
+    def __init__(self, pid):
         self._frame = None
         self._dirty = False
-        self._chance = 0
+        self._chance = 1
         self._validBit = False
+        self._pid = pid
 
     def __repr__(self):
-        return "<<Page, Frame>>: {} {} {}".format(self._frame, self._dirty, self._chance)
+        return "<<Page, Frame>>: {} {} {} {}".format(self._frame, self._dirty, self._chance, self._pid)
 
     @property
     def isValid(self):
@@ -658,10 +661,37 @@ class Page:
     def chance(self, int):
         self._chance = int
 
+    @property
+    def pid(self):
+        return self._pid
     
-#class SecondChance:
-   # def chooseUne(self):
-       
+
+    @pid.setter
+    def pid(self, int):
+        self._pid = int
+
+    
+class SecondChance:
+
+    def chooseOne(self, usedFrames):
+        iterator = 0
+        maxIt = len(usedFrames)-1
+        ret = None
+        while iterator <= maxIt and ret == None:
+            ret = self.selectVictim(usedFrames[iterator])
+            iterator += 1
+            if maxIt <= iterator:
+                iterator=0
+
+        return ret
+
+    def selectVictim(self, page):
+        print("Pagina que intento desalojar: ", page)
+        if page.chance == 1:
+            page.chance = 0
+        else:
+            return page
+            
 
 
 
@@ -672,7 +702,8 @@ class MemoryManager:
         self._freeFrames = [x for x in range (0,(memory.getLeng() // frameSize)) ]
         self._frameSize = frameSize
         self._pageTables = dict()
-        #self._victimSelector = SecondChance(self)
+        self._pagesInMemory = []
+        self._victimSelector = SecondChance()
 
     def allocFrames(self, numberOfFrames):
         if numberOfFrames <= len(self._freeFrames):
@@ -690,9 +721,13 @@ class MemoryManager:
 
     def getFreeFrame(self):
         #precondicion: tengo frames libres
+            print("frames libres ,", self._freeFrames)
+            print("paginas en memoria ", self._pagesInMemory)
+            #print("cantidad paginas ,", len(self._pageTables))
             if not self.hasFreeFrame():
-                self.chooseVictim()
-            return self._freeFrames.pop(0)
+                return self.chooseVictim()
+            else:
+                return self._freeFrames.pop(0)
 
     def hasFreeFrame(self):
 
@@ -703,24 +738,32 @@ class MemoryManager:
         return process[pageNumber]
 
     def chooseVictim(self):
-        raise Exception("\x9B37;44m\x9B2J\x9B12;18HException: No Hay Frames Libres. [BSOD]... Falta Resolver la seleccion de victima :/ \x9B14;18H(!!!)\x9B0m")
-       # pid, page = self.victimSelector.chooseone()
-       # print("pagina a Desalojar", page)
-       # newFreeFrame = page.returnFrame
-       # print("pagina desalojada",page)
-       # print("Estado de la page table", pageTables)
+       pageToRemove = self._victimSelector.chooseOne(self._pagesInMemory)
+       #print("pagina a Desalojar", pageToRemove)
+       newFreeFrame = pageToRemove.frame
+       self.removePage(pageToRemove)
+       #print("pagina desalojada",pageToRemove)
+       #print("Estado de la page table", self._pageTables)
+       return newFreeFrame
+       raise Exception("\x9B37;44m\x9B2J\x9B12;18HException: No Hay Frames Libres. [BSOD]... Falta Resolver la seleccion de victima :/ \x9B14;18H(!!!)\x9B0m")
 
     def setPage(self, pid, pageNumber, page):
+        print("pageTable :", self._pageTables)
         process = self._pageTables[pid]
         process[pageNumber] = page
-        self._pageTables.update({pid: process})
+        self._pagesInMemory.append(page)
+        self._pageTables.update({pid: process}) 
 
     @property
     def frameSize(self):
         return self._frameSize
     
 
-    
+    def removePage(self, page):
+        self._pagesInMemory.remove(page)
+        page.frame = None
+        self._pageTables.update({page.pid: page})
+
     def newPageTable(self, pid):
         self._pageTables.update({pid: []})
 
