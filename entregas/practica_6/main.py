@@ -14,7 +14,7 @@ if __name__ == '__main__':
     log.logger.info('Starting emulator')
 
     ## setup our hardware and set memory size to 32 "cells"
-    HARDWARE.setup(32)
+    HARDWARE.setup(8)
     HARDWARE.timeUnit = 0.5
 
     SCHEDULER_FCFS = 'FCFS'
@@ -52,7 +52,7 @@ if __name__ == '__main__':
 
     # Ahora vamos a intentar ejecutar 3 programas a la vez
     ##################
-    prg1 = Program([ASM.CPU(4), ASM.IO(), ASM.CPU(4)])   
+    prg1 = Program([ASM.CPU(9)])#, ASM.IO(), ASM.CPU(4)])   
     prg2 = Program([ASM.AI1(4), ASM.CPU(4), ASM.IO(), ASM.CPU(3)])
     prg3 = Program([ASM.CPU(4), ASM.IO(), ASM.CPU(1)]) 
 
@@ -77,10 +77,10 @@ if __name__ == '__main__':
     kernel.run("/prg1",1)
     kernel.run("/prg2",0)
     kernel.run("/prg3",0)
-    kernel.run("/prg3",2)
-    sleep(32 * HARDWARE.timeUnit)
-    kernel.run("/prg1",1)
-    kernel.run("/prg2",0)
-    kernel.run("/prg3",0)
+    #kernel.run("/prg3",2)
+    #sleep(32 * HARDWARE.timeUnit)
+    #kernel.run("/prg1",1)
+    #kernel.run("/prg2",0)
+    #kernel.run("/prg3",0)
 
     shell.com(kernel)

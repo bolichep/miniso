@@ -634,7 +634,7 @@ class Page:
         self._pid = pid
 
     def __repr__(self):
-        return "<<Page, Frame>>: {} {} {} {}".format(self._frame, self._dirty, self._chance, self._pid)
+        return "<<Page, Frame>>: {} {} {} {}\n".format(self._frame, self._dirty, self._chance, self._pid)
 
     @property
     def isValid(self):
@@ -735,6 +735,7 @@ class MemoryManager:
 
     def getPage(self, pid, pageNumber):
         process = self._pageTables[pid]
+        print("Pagina de proceso ", process)
         return process[pageNumber]
 
     def chooseVictim(self):
@@ -762,7 +763,9 @@ class MemoryManager:
     def removePage(self, page):
         self._pagesInMemory.remove(page)
         page.frame = None
-        self._pageTables.update({page.pid: page})
+       	#pidPages = self._pageTables.get(pid)
+
+        #self._pageTables.update({page.pid: pidPages})
 
     def newPageTable(self, pid):
         self._pageTables.update({pid: []})
