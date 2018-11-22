@@ -270,6 +270,11 @@ class MMU():
         if not page.isValid:
             pageFaultIRQ = IRQ(PAGE_FAULT_INTERRUPTION_TYPE, pageId) ##TODO pasar pageID para saber donde cargarlo.
             HARDWARE.cpu._interruptVector.handle(pageFaultIRQ)
+            page = self._tlb[pageId]
+            print(" -----------  DESPUES DE # PAGE_FAULT")
+            print(page)
+            print(" -----------  DESPUES DE # PAGE_FAULT")
+
 
         frameId = page.frame
         ##calculamos la direccion fisica resultante

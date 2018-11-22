@@ -214,7 +214,8 @@ class PageFaultInterruptionHandler(AbstractInterruptionHandler):
         self.kernel.loader.loadPage(runningPCB.path, pageNumber, freeFrame)
         #print("page to update ", page)
         self.kernel.memoryManager.setPage(runningPCB.pid, pageNumber, page)
-        self.kernel.hardware.mmu.updateTLB(pageNumber, page)
+        pages = self.kernel.memoryManager.getPageTable(runningPCB.pid)
+        self.kernel.dispacher.loadTlb(pages)
         log.logger.info(self._kernel.hardware)
 
 #emul dispacher
@@ -232,11 +233,14 @@ class Dispacher():
         pages = self._kernel.memoryManager.getPageTable(pcb.pid)
         #print("cantidad de paginas a cargar en la pagetable", len(pages))
         #pages = pcb.pages
+        self.loadTlb(pages)
+        #print("pid: ", pcb.pid, "prio: ", pcb.priority, "TLB: ", HARDWARE.mmu._tlb)
+
+    def loadTlb(self,pages):
         print("Paginas a cargar: ", pages)
         for page in range(0, len(pages)):
             HARDWARE.mmu.setPageFrame(page, pages[page])
         HARDWARE.timer.reset()
-        #print("pid: ", pcb.pid, "prio: ", pcb.priority, "TLB: ", HARDWARE.mmu._tlb)
 
     def save(self, pcb):
         pcb.context = HARDWARE.cpu.context # all regs in a big tuple
@@ -644,6 +648,8 @@ class Page:
 
     @property
     def frame(self):
+        if not self._validBit:
+            raise Exception("no tiene frame esta pagina") 
         res = self._frame
         return res
     
@@ -653,9 +659,13 @@ class Page:
          self._validBit =  True
     @property
     def returnFrame(self):
+        if not self._validBit:
+            raise Exception("no tiene frame esta pagina") 
+
         self._vaildBit = False
         return self._frame
-    
+        
+
     @property
     def chance(self):
         return self._chance
@@ -727,9 +737,9 @@ class MemoryManager:
             print("paginas en memoria ", self._pagesInMemory)
             #print("cantidad paginas ,", len(self._pageTables))
             if not self.hasFreeFrame():
-                return self.chooseVictim()
-            else:
-                return self._freeFrames.pop(0)
+                self._freeFrames.append(self.chooseVictim())
+            
+            return self._freeFrames.pop(0)
 
     def hasFreeFrame(self):
 
@@ -743,14 +753,13 @@ class MemoryManager:
     def chooseVictim(self):
        pageToRemove = self._victimSelector.chooseOne(self._pagesInMemory)
        #print("pagina a Desalojar", pageToRemove)
-       newFreeFrame = pageToRemove.frame
+       newFreeFrame = pageToRemove.returnFrame     #volverAka
        self.removePage(pageToRemove)
        print("Frame libre EN CHOOSE VICTIM ", newFreeFrame)
        #print("pagina desalojada",pageToRemove)
        #print("Estado de la page table", self._pageTables)
        return newFreeFrame
-       raise Exception("\x9B37;44m\x9B2J\x9B12;18HException: No Hay Frames Libres. [BSOD]... Falta Resolver la seleccion de victima :/ \x9B14;18H(!!!)\x9B0m")
-
+       
     def setPage(self, pid, pageNumber, page):
         print("pageTable :", self._pageTables)
         process = self._pageTables[pid]
