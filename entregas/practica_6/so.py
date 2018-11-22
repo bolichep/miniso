@@ -34,7 +34,7 @@ class Program():
         if not ASM.isEXIT(last):
             expanded.append(INSTRUCTION_EXIT)
 
-        return expanded
+        return ASM.secondPass(expanded)
 
     def __repr__(self):
         return "Program({instructions})".format(instructions=self._instructions)
