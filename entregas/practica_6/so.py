@@ -636,7 +636,7 @@ class Page:
         self._pid = pid
 
     def __repr__(self):
-        return "<<Page, Frame>>: {} {} {} {}\n".format(self._frame, self._dirty, self._chance, self._pid)
+        return "Frame:{} dty:{} cha{} pid{}\n".format(self._frame, self._dirty, self._chance, self._pid)
 
     @property
     def isValid(self):
@@ -752,7 +752,7 @@ class MemoryManager:
        raise Exception("\x9B37;44m\x9B2J\x9B12;18HException: No Hay Frames Libres. [BSOD]... Falta Resolver la seleccion de victima :/ \x9B14;18H(!!!)\x9B0m")
 
     def setPage(self, pid, pageNumber, page):
-        print("pageTable :", self._pageTables)
+        print("pageTable :\n", self._pageTables)
         process = self._pageTables[pid]
         process[pageNumber] = page
         self._pagesInMemory.append(page)
