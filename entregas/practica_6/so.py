@@ -640,7 +640,7 @@ class Page:
         self._pid = pid
 
     def __repr__(self):
-        return "<<Page, Frame>>: {} {} {} {}\n".format(self._frame, self._dirty, self._chance, self._pid)
+        return "Frame:{} dty:{} cha:{} pid:{}\n".format(self._frame, self._dirty, self._chance, self._pid)
 
     @property
     def isValid(self):
@@ -761,7 +761,7 @@ class MemoryManager:
        return newFreeFrame
        
     def setPage(self, pid, pageNumber, page):
-        print("pageTable :", self._pageTables)
+        print("pageTable :\n", self._pageTables)
         process = self._pageTables[pid]
         process[pageNumber] = page
         self._pagesInMemory.append(page)
