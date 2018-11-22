@@ -636,7 +636,7 @@ class Page:
         self._pid = pid
 
     def __repr__(self):
-        return "Frame:{} dty:{} cha{} pid{}\n".format(self._frame, self._dirty, self._chance, self._pid)
+        return "Frame:{} dty:{} cha:{} pid:{}\n".format(self._frame, self._dirty, self._chance, self._pid)
 
     @property
     def isValid(self):
