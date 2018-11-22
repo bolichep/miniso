@@ -15,7 +15,7 @@ if __name__ == '__main__':
 
     ## setup our hardware and set memory size to 32 "cells"
     HARDWARE.setup(8)
-    HARDWARE.timeUnit = 0.5
+    HARDWARE.timeUnit = 1
 
     SCHEDULER_FCFS = 'FCFS'
     SCHEDULER_RR = 'RR'

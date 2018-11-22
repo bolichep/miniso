@@ -145,7 +145,9 @@ class KillInterruptionHandler(AbstractInterruptionHandler):
         self.contextSwitchFromRunningTo(State.sterminated)
         pages= self.kernel.memoryManager.getPageTable(pcb.pid)
         for i in range(0, len(pages)):
-            self.kernel._memoryManager.freeFrames(pages[i].returnFrame)
+        	if(pages[i].frame != None):
+        		print("Pagina a liberar en KILL ", pages[i])
+        		self.kernel._memoryManager.freeFrames(pages[i].returnFrame)
 
 
 class NewInterruptionHandler(AbstractInterruptionHandler):
@@ -743,6 +745,7 @@ class MemoryManager:
        #print("pagina a Desalojar", pageToRemove)
        newFreeFrame = pageToRemove.frame
        self.removePage(pageToRemove)
+       print("Frame libre EN CHOOSE VICTIM ", newFreeFrame)
        #print("pagina desalojada",pageToRemove)
        #print("Estado de la page table", self._pageTables)
        return newFreeFrame
