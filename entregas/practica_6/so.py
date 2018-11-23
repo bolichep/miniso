@@ -145,7 +145,9 @@ class KillInterruptionHandler(AbstractInterruptionHandler):
         self.contextSwitchFromRunningTo(State.sterminated)
         pages= self.kernel.memoryManager.getPageTable(pcb.pid)
         for i in range(0, len(pages)):
-            self.kernel._memoryManager.freeFrames(pages[i].returnFrame)
+        	if(pages[i].frame != None):
+        		print("Pagina a liberar en KILL ", pages[i])
+        		self.kernel._memoryManager.freeFrames(pages[i].returnFrame)
 
 
 class NewInterruptionHandler(AbstractInterruptionHandler):
@@ -212,7 +214,8 @@ class PageFaultInterruptionHandler(AbstractInterruptionHandler):
         self.kernel.loader.loadPage(runningPCB.path, pageNumber, freeFrame)
         #print("page to update ", page)
         self.kernel.memoryManager.setPage(runningPCB.pid, pageNumber, page)
-        self.kernel.hardware.mmu.updateTLB(pageNumber, page)
+        pages = self.kernel.memoryManager.getPageTable(runningPCB.pid)
+        self.kernel.dispacher.loadTlb(pages)
         log.logger.info(self._kernel.hardware)
 
 #emul dispacher
@@ -230,11 +233,14 @@ class Dispacher():
         pages = self._kernel.memoryManager.getPageTable(pcb.pid)
         #print("cantidad de paginas a cargar en la pagetable", len(pages))
         #pages = pcb.pages
+        self.loadTlb(pages)
+        #print("pid: ", pcb.pid, "prio: ", pcb.priority, "TLB: ", HARDWARE.mmu._tlb)
+
+    def loadTlb(self,pages):
         print("Paginas a cargar: ", pages)
         for page in range(0, len(pages)):
             HARDWARE.mmu.setPageFrame(page, pages[page])
         HARDWARE.timer.reset()
-        #print("pid: ", pcb.pid, "prio: ", pcb.priority, "TLB: ", HARDWARE.mmu._tlb)
 
     def save(self, pcb):
         pcb.context = HARDWARE.cpu.context # all regs in a big tuple
@@ -634,7 +640,7 @@ class Page:
         self._pid = pid
 
     def __repr__(self):
-        return "<<Page, Frame>>: {} {} {} {}".format(self._frame, self._dirty, self._chance, self._pid)
+        return "Frame:{} dty:{} cha:{} pid:{}\n".format(self._frame, self._dirty, self._chance, self._pid)
 
     @property
     def isValid(self):
@@ -642,6 +648,8 @@ class Page:
 
     @property
     def frame(self):
+        if not self._validBit:
+            raise Exception("no tiene frame esta pagina") 
         res = self._frame
         return res
     
@@ -651,9 +659,13 @@ class Page:
          self._validBit =  True
     @property
     def returnFrame(self):
+        if not self._validBit:
+            raise Exception("no tiene frame esta pagina") 
+
         self._vaildBit = False
         return self._frame
-    
+        
+
     @property
     def chance(self):
         return self._chance
@@ -725,9 +737,9 @@ class MemoryManager:
             print("paginas en memoria ", self._pagesInMemory)
             #print("cantidad paginas ,", len(self._pageTables))
             if not self.hasFreeFrame():
-                return self.chooseVictim()
-            else:
-                return self._freeFrames.pop(0)
+                self._freeFrames.append(self.chooseVictim())
+            
+            return self._freeFrames.pop(0)
 
     def hasFreeFrame(self):
 
@@ -735,20 +747,21 @@ class MemoryManager:
 
     def getPage(self, pid, pageNumber):
         process = self._pageTables[pid]
+        print("Pagina de proceso ", process)
         return process[pageNumber]
 
     def chooseVictim(self):
        pageToRemove = self._victimSelector.chooseOne(self._pagesInMemory)
        #print("pagina a Desalojar", pageToRemove)
-       newFreeFrame = pageToRemove.frame
+       newFreeFrame = pageToRemove.returnFrame     #volverAka
        self.removePage(pageToRemove)
+       print("Frame libre EN CHOOSE VICTIM ", newFreeFrame)
        #print("pagina desalojada",pageToRemove)
        #print("Estado de la page table", self._pageTables)
        return newFreeFrame
-       raise Exception("\x9B37;44m\x9B2J\x9B12;18HException: No Hay Frames Libres. [BSOD]... Falta Resolver la seleccion de victima :/ \x9B14;18H(!!!)\x9B0m")
-
+       
     def setPage(self, pid, pageNumber, page):
-        print("pageTable :", self._pageTables)
+        print("pageTable :\n", self._pageTables)
         process = self._pageTables[pid]
         process[pageNumber] = page
         self._pagesInMemory.append(page)
@@ -762,7 +775,9 @@ class MemoryManager:
     def removePage(self, page):
         self._pagesInMemory.remove(page)
         page.frame = None
-        self._pageTables.update({page.pid: page})
+       	#pidPages = self._pageTables.get(pid)
+
+        #self._pageTables.update({page.pid: pidPages})
 
     def newPageTable(self, pid):
         self._pageTables.update({pid: []})

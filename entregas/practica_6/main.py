@@ -14,8 +14,8 @@ if __name__ == '__main__':
     log.logger.info('Starting emulator')
 
     ## setup our hardware and set memory size to 32 "cells"
-    HARDWARE.setup(32)
-    HARDWARE.timeUnit = 0.5
+    HARDWARE.setup(4)
+    HARDWARE.timeUnit = 1
 
     SCHEDULER_FCFS = 'FCFS'
     SCHEDULER_RR = 'RR'
@@ -77,10 +77,10 @@ if __name__ == '__main__':
     kernel.run("/prg1",1)
     kernel.run("/prg2",0)
     kernel.run("/prg3",0)
-    kernel.run("/prg3",2)
-    sleep(32 * HARDWARE.timeUnit)
-    kernel.run("/prg1",1)
-    kernel.run("/prg2",0)
-    kernel.run("/prg3",0)
+    #kernel.run("/prg3",2)
+    #sleep(32 * HARDWARE.timeUnit)
+    #kernel.run("/prg1",1)
+    #kernel.run("/prg2",0)
+    #kernel.run("/prg3",0)
 
     shell.com(kernel)

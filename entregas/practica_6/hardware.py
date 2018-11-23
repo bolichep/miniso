@@ -370,6 +370,11 @@ class MMU():
         if not page.isValid:
             pageFaultIRQ = IRQ(PAGE_FAULT_INTERRUPTION_TYPE, pageId)
             HARDWARE.cpu._interruptVector.handle(pageFaultIRQ)
+            page = self._tlb[pageId]
+            print(" -----------  DESPUES DE # PAGE_FAULT")
+            print(page)
+            print(" -----------  DESPUES DE # PAGE_FAULT")
+
 
 
         frameId = page.frame
