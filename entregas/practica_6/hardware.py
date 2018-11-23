@@ -49,6 +49,7 @@ class ASM():
         for i in passOneCode:
             passTwoCode.append(self.__addrInTable(i))
 
+        self.reset()
         return passTwoCode
 
     # return maped value in symbol table map
@@ -429,9 +430,9 @@ class Cpu():
             pass
 
         if self._ir == 'EXIT':
-            #print("\x9B7m", end="")
-            #print("A Reg : ", self._ac, "/ B Reg : ", self._bc,"/ z flag: ", self._zf)
-            #print("\x9B0m", end="")
+            print("\x9B7m", end="")
+            print("A Reg : ", self._ac, "/ B Reg : ", self._bc,"/ z flag: ", self._zf)
+            print("\x9B0m", end="")
             pass
 
         if self._ir == 'CALL':
