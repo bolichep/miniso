@@ -126,7 +126,7 @@ class shell():
                     if comandos[0] == 'tick':
                         comandos.pop(0)
                         count = 1
-                        if comandos:
+                        if comandos and isinstance(comandos[0], int):
                             count = int(comandos[0])
                         while count:
                             HARDWARE.clock.tick(1)
