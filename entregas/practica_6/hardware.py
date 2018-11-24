@@ -62,10 +62,14 @@ class ASM():
         return value
 
     @classmethod
+    def __afterCount(self, instructions):
+        self.addrCounter += len(instructions)
+        return instructions
+
+    @classmethod
     def HEADER(self, space):
-        instr = [INSTRUCTION_JMP, str(space)] + ['0']* (space-2)
-        self.addrCounter += len(instr)
-        return instr
+        return self.__afterCount(
+                [INSTRUCTION_JMP, str(space)] + ['0']* (space-2))
 
     @classmethod
     def LABEL(self, labelName):
@@ -74,127 +78,83 @@ class ASM():
 
     @classmethod
     def JNZ(self, address):
-        #address = self.__addrInTable(address)
-        instr =  [INSTRUCTION_JNZ, str(address)]
-        self.addrCounter += len(instr)
-        return instr
+        return self.__afterCount([INSTRUCTION_JNZ, str(address)])
 
     @classmethod
     def JZ(self, address):
-        #address = self.__addrInTable(address)
-        instr =  [INSTRUCTION_JZ, str(address)]
-        self.addrCounter += len(instr)
-        return instr
+        return self.__afterCount([INSTRUCTION_JZ, str(address)])
 
     @classmethod
     def JMP(self, address):
-        #address = self.__addrInTable(address)
-        instr =  [INSTRUCTION_JMP, str(address)]
-        self.addrCounter += len(instr)
-        return instr
+        return self.__afterCount([INSTRUCTION_JMP, str(address)])
 
     @classmethod
     def CALL(self, address):
-        #address = self.__addrInTable(address)
-        instr =  [INSTRUCTION_CALL, str(address)]
-        self.addrCounter += len(instr)
-        return instr
+        return self.__afterCount([INSTRUCTION_CALL, str(address)])
 
     @classmethod
     def RET(self):
-        instr =  [INSTRUCTION_RET]
-        self.addrCounter += len(instr)
-        return instr
+        return self.__afterCount([INSTRUCTION_RET])
 
     @classmethod
     def STORA(self, value):
-        instr =  [INSTRUCTION_STORA, str(value)]
-        self.addrCounter += len(instr)
-        return instr
+        return self.__afterCount([INSTRUCTION_STORA, str(value)])
 
     @classmethod
     def STORB(self, value):
-        instr =  [INSTRUCTION_STORB, str(value)]
-        self.addrCounter += len(instr)
-        return instr
+        return self.__afterCount([INSTRUCTION_STORB, str(value)])
 
     @classmethod
     def DECA(self, times):
-        instr =  [INSTRUCTION_DECA] * times
-        self.addrCounter += len(instr)
-        return instr
+        return self.__afterCount([INSTRUCTION_DECA] * times)
 
     @classmethod
     def INCA(self, times):
-        instr =  [INSTRUCTION_INCA] * times
-        self.addrCounter += len(instr)
-        return instr
+        return self.__afterCount([INSTRUCTION_INCA] * times)
 
     @classmethod
     def INCB(self, times):
-        instr =  [INSTRUCTION_INCB] * times
-        self.addrCounter += len(instr)
-        return instr
+        return self.__afterCount([INSTRUCTION_INCB] * times)
 
     @classmethod
     def DECB(self, times):
-        instr =  [INSTRUCTION_DECB] * times
-        self.addrCounter += len(instr)
-        return instr
+        return self.__afterCount([INSTRUCTION_DECB] * times)
 
     @classmethod
     def ADDAB(self):
-        instr =  [INSTRUCTION_ADDAB]
-        self.addrCounter += len(instr)
-        return instr
+        return self.__afterCount([INSTRUCTION_ADDAB])
 
     @classmethod
     def CMPAB(self):
-        instr =  [INSTRUCTION_CMPAB]
-        self.addrCounter += len(instr)
-        return instr
+        return self.__afterCount([INSTRUCTION_CMPAB])
 
     @classmethod
     def PUSHA(self):
-        instr =  [INSTRUCTION_PUSHA]
-        self.addrCounter += len(instr)
-        return instr
+        return self.__afterCount([INSTRUCTION_PUSHA])
 
     @classmethod
     def POPA(self):
-        instr =  [INSTRUCTION_POPA]
-        self.addrCounter += len(instr)
-        return instr
+        return self.__afterCount([INSTRUCTION_POPA])
 
     @classmethod
     def PUSHB(self):
-        instr =  [INSTRUCTION_PUSHB]
-        self.addrCounter += len(instr)
-        return instr
+        return self.__afterCount([INSTRUCTION_PUSHB])
 
     @classmethod
     def POPB(self):
-        instr =  [INSTRUCTION_POPB]
-        self.addrCounter += len(instr)
-        return instr
+        return self.__afterCount([INSTRUCTION_POPB])
 
     @classmethod
     def EXIT(self, times):
-        instr =  [INSTRUCTION_EXIT] * times
-        self.addrCounter += len(instr)
-        return instr
+        return self.__afterCount([INSTRUCTION_EXIT] * times)
 
     @classmethod
     def IO(self):
-        instr =  [INSTRUCTION_IO]
-        self.addrCounter += len(instr)
-        return instr
+        return self.__afterCount([INSTRUCTION_IO])
 
     @classmethod
     def CPU(self, times):
-        instr =  [INSTRUCTION_CPU] * times
-        self.addrCounter += len(instr)
-        return instr
+        return self.__afterCount([INSTRUCTION_CPU] * times)
 
     @classmethod
     def isEXIT(self, instruction):
@@ -207,11 +167,12 @@ class ASM():
 
 
 ##  Estas son la interrupciones soportadas por nuestro Kernel
-KILL_INTERRUPTION_TYPE    = "#KILL"
-IO_IN_INTERRUPTION_TYPE   = "#IO_IN"
-IO_OUT_INTERRUPTION_TYPE  = "#IO_OUT"
-NEW_INTERRUPTION_TYPE     = "#NEW"
-TIMEOUT_INTERRUPTION_TYPE = "#TIMEOUT"
+KILL_INTERRUPTION_TYPE       = "#KILL"
+IO_IN_INTERRUPTION_TYPE      = "#IO_IN"
+IO_OUT_INTERRUPTION_TYPE     = "#IO_OUT"
+NEW_INTERRUPTION_TYPE        = "#NEW"
+TIMEOUT_INTERRUPTION_TYPE    = "#TIMEOUT"
+PAGE_FAULT_INTERRUPTION_TYPE = "#PAGE_FAULT"
 
 ## emulates an Interrupt request
 class IRQ:
