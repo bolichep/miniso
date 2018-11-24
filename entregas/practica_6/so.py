@@ -609,7 +609,7 @@ class Gantt():
                     State.sterminated: "."}
             self._graph[pcb.pid] += case[pcb.state]
 
-        log.logger.info("Gantt ***** {}\npid prio (R)unning (r)eady (w)aiting".format(self._ticks))
+        log.logger.info("Gantt {} {}\npid prio (R)unning (r)eady (w)aiting".format(self._kernel._scheduler.name, self._ticks))
         for (i, string) in self._graph.items():
             log.logger.info(string)
   
