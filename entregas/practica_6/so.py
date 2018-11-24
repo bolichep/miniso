@@ -591,6 +591,8 @@ class Gantt():
             if pcb.pid not in self._graph:
                 self._graph[pcb.pid] = "{}   {}    {}".format(pcb.pid, pcb.priority, " " * self._ticks)
 
+
+            """
             if pcb.state == State.srunning:
                 self._graph[pcb.pid] += "\x9B7mR\x9B0m"
             elif pcb.state == State.sready:
@@ -599,6 +601,13 @@ class Gantt():
                 self._graph[pcb.pid] += "w"
             else:
                 self._graph[pcb.pid] += "."
+                """
+            case = {State.srunning   : "\x9B7mR\x9B0m", 
+                    State.sready     : "r",
+                    State.swaiting   : "w",
+                    State.snew       : "n",
+                    State.sterminated: "."}
+            self._graph[pcb.pid] += case[pcb.state]
 
         log.logger.info("Gantt ***** {}\npid prio (R)unning (r)eady (w)aiting".format(self._ticks))
         for (i, string) in self._graph.items():
