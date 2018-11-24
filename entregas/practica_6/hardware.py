@@ -161,6 +161,10 @@ class ASM():
         return INSTRUCTION_EXIT == instruction
 
     @classmethod
+    def isEXITorRET(self, instruction):
+        return instruction in [INSTRUCTION_EXIT, INSTRUCTION_RET]
+
+    @classmethod
     def isIO(self, instruction):
         return INSTRUCTION_IO == instruction
 
@@ -206,9 +210,6 @@ class InterruptVector():
         self.lock.acquire()
         self._handlers[irq.type].execute(irq)
         self.lock.release()
-
-
-
 
 
 ## emulates the Internal Clock
@@ -257,7 +258,6 @@ class Clock():
         log.logger.info("---- :::: CLOCK do_ticks: {times} ::: -----".format(times=times))
         for tickNbr in range(0, times):
             self.tick(tickNbr)
-
 
 
 ## emulates the main memory (RAM)
@@ -399,7 +399,7 @@ class Cpu():
             self._sp += 1
             self._mmu.write(self._sp, self._pc )
             self._pc = int(self._or)
-            print("CALL instruction")
+            #print("CALL instruction")
 
         if self._ir == 'RET':
             self._pc = self._mmu.fetch(self._sp)
@@ -432,54 +432,54 @@ class Cpu():
 
         if self._ir == 'STORA':
             self._ac = int(self._or)
-            print("STORA Instruction")
+            #print("STORA Instruction")
 
         if self._ir == 'STORB':
             self._bc = int(self._or)
-            print("STORB Instruction")
+            #print("STORB Instruction")
 
         if self._ir == 'DECA':
             self._ac -= 1
             self._zf = (self._ac == 0)
-            print("DECA Instruction")
+            #print("DECA Instruction")
 
         if self._ir == 'INCA':
             self._ac += 1
             self._zf = (self._ac == 0)
-            print("INCA Instruction")
+            #print("INCA Instruction")
 
         if self._ir == 'DECB':
             self._bc -= 1
             self._zf = (self._bc == 0)
-            print("DECB Instruction")
+            #print("DECB Instruction")
 
         if self._ir == 'INCB':
             self._bc += 1
             self._zf = (self._bc == 0)
-            print("INCB Instruction")
+            #print("INCB Instruction")
 
         if self._ir == 'ADDAB':
             self._ac += self._bc
             self._zf = self._ac == 0
-            print("ADDAB Instruction")
+            #print("ADDAB Instruction")
 
         if self._ir == 'CMPAB':
             self._zf = self._ac == self._bc
-            print("CMPAB Instruction")
+            #print("CMPAB Instruction")
 
         if self._ir == 'JMP': #Jump absoluto
             self._pc = int(self._or)
-            print("JMP {} Instruction".format(self._pc))
+            #print("JMP {} Instruction".format(self._pc))
 
         if self._ir == 'JNZ': # absoluto
-            print("JNZ {} Instruction zf={}".format(
-                       self._or, self._zf))
+            #print("JNZ {} Instruction zf={}".format(
+            #           self._or, self._zf))
             if not self._zf:
                 self._pc = int(self._or)
 
         if self._ir == 'JZ': # absoluto
-            print("JZ {} Instruction zf={}".format(
-                       self._or, self._zf))
+            #print("JZ {} Instruction zf={}".format(
+            #          self._or, self._zf))
             if self._zf:
                 self._pc = int(self._or)
 
