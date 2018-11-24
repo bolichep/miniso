@@ -23,7 +23,7 @@ if __name__ == '__main__':
     SCHEDULER_P = 'P'
 
     #scheduler choose
-    sche = SCHEDULER_FCFS #<<<<<<< choose here or at cli
+    sche = SCHEDULER_RR #<<<<<<< choose here or at cli
 
     if len(sys.argv) > 1:
         sche = sys.argv[1]
@@ -100,9 +100,7 @@ if __name__ == '__main__':
         ASM.PUSHA(),
         ASM.POPB(),          # B = fib(n-1) + fib(n-2)
         ASM.LABEL('RETORNO'),
-        ASM.RET(),
-
-        ASM.EXIT(1)
+        ASM.RET()
         ])
 
     kernel.fileSystem.write("/bin/exit", Program([
