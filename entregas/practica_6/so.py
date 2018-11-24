@@ -28,10 +28,10 @@ class Program():
                 ## a single instr (a String)
                 expanded.append(i)
 
-        ## now test if last instruction is EXIT
+        ## now test if last instruction is EXIT or RET
         ## if not... add an EXIT as final instruction
         last = expanded[-1]
-        if not ASM.isEXIT(last):
+        if not ASM.isEXITorRET(last):
             expanded.append(INSTRUCTION_EXIT)
 
         return ASM.secondPass(expanded)
