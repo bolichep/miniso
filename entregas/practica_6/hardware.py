@@ -336,8 +336,6 @@ class MMU():
             print(page)
             print(" -----------  DESPUES DE # PAGE_FAULT")
 
-        print("---------------TLB ", self._tlb)
-
         frameId = page.frame
         page.chance = 1
         ##calculamos la direccion fisica resultante

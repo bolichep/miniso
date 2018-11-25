@@ -673,8 +673,8 @@ class Page:
 
     @property
     def returnFrame(self):
-        if not self._validBit:
-            raise Exception("no tiene frame esta pagina") 
+        #if not self._validBit:
+        #    raise Exception("no tiene frame esta pagina") 
         self._validBit = False 
         return self._frame
         
