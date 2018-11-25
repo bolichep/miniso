@@ -308,8 +308,11 @@ class MMU():
     def resetTLB(self):
         self._tlb = dict()
 
-    def setPageFrame(self, pageId, frameId):
-        self._tlb[pageId] = frameId
+    # pageId is a number (of page),
+    # frameRef is a instance of Page() (from so.py)
+    def setPageFrame(self, pageId, frameRef):
+        print("setPageFrame: pageId:", pageId, " frameRef:", frameRef)
+        self._tlb[pageId] = frameRef
 
     def logicalToPhysicalAddress(self, logicalAddress):
         if (logicalAddress > self._limit):
@@ -321,7 +324,7 @@ class MMU():
 
         # buscamos la direccion Base del frame donde esta almacenada la pagina
         try:
-            frameId = self._tlb[pageId]
+            frameId = self._tlb[pageId].frame
         except:
             raise Exception("\n*\n* ERROR \n*\n Error en el MMU\nNo se cargo la pagina  {pageId}".format(pageId = str(pageId)))
 
