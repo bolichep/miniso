@@ -663,6 +663,7 @@ class Page:
     @property
     def chance(self):
         return self._chance
+
     @chance.setter
     def chance(self, int):
         self._chance = int
@@ -705,12 +706,11 @@ class MemoryManager:
 
     def getFreeFrame(self):
         #precondicion: tengo frames libres
-            if not self.hasFreeFrame():
-                self.chooseVictim()
-            return self._freeFrames.pop(0)
+        if not self.hasFreeFrame():
+            self.chooseVictim()
+        return self._freeFrames.pop(0)
 
     def hasFreeFrame(self):
-
         return self._freeFrames
 
     def getPage(self, pid, pageNumber):
