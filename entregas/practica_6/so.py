@@ -667,12 +667,18 @@ class Page:
     def chance(self, int):
         self._chance = int
 
+    @property
+    def pid(self):
+        return self._pid
+
+    @pid.setter
+    def pid(self, int):
+        self._pid = int
+
     
 #class SecondChance:
    # def chooseUne(self):
        
-
-
 
 class MemoryManager:
 

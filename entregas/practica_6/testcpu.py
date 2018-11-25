@@ -29,7 +29,7 @@ if __name__ == '__main__':
 
     if sche == SCHEDULER_RR:
         timer = HARDWARE.timer
-        timer.quantum = 2
+        timer.quantum = 1
         scheduler = SchedulerRRB()
     if sche == SCHEDULER_FCFS:
         scheduler = SchedulerFCFS()
@@ -49,34 +49,23 @@ if __name__ == '__main__':
     kernel = Kernel(HARDWARE,scheduler, frameSize = 8)
     # sleep(1)
 
-    # Ahora vamos a intentar ejecutar 3 programas a la vez
+    # Ahora vamos a intentar ejecutar 1 programa, tres veces
     ##################
-    """
-    prg1 = Program([
-        ASM.HEADER(10),
-        ASM.CPU(1), #0
-        ASM.CPU(1), #1
-        ASM.CPU(1), #2
-        ASM.AI1(1), #3
-        ASM.PUSHA(), #4
-        ASM.PUSHA(), #4
-        ASM.AI1(1), #5
-        ASM.JZ(4),  #16
-        ASM.CPU(1), #8
-        ASM.JMP(17),
-        ASM.CPU(2)  #9 ,10
-        ])
-    """
     prg1 = Program([
         ASM.HEADER(4),
-        ASM.AI1(4),
-        ASM.BI1(1),
-        ASM.AD1(1),
-        ASM.JZ(2),
-        ASM.JMP(8),
+        ASM.STORB('6'),
+        ASM.INCA(4),
+        ASM.LABEL('DECREMENTAR B'),
+        ASM.DECB(1),
+        ASM.CMPAB(),
+        ASM.JZ('SALIDA'),
+        ASM.JMP('DECREMENTAR B'),
+        ASM.LABEL('SALIDA'),
         ASM.EXIT(1)
         ])
+
     kernel.fileSystem.write("asmcode", prg1)
+    kernel.run("asmcode",1)
     kernel.run("asmcode",1)
     kernel.run("asmcode",1)
 
