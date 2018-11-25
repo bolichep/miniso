@@ -593,6 +593,16 @@ class Fsb:
     def read(self, fname):
         return self._fs.get(fname)
 
+class Page:
+    
+    def __init__(self):
+        self._frame = None
+        self._dirty = False
+        self._chance = 0
+
+    def isValid(self):
+        return not self._frame == None
+
 
 class MemoryManager:
 
@@ -623,7 +633,6 @@ class MemoryManager:
 
     def getPageTable(self, pid):
         return self._pageTables.get(pid)
-  
 
     @property
     def memory(self):
