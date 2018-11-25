@@ -339,6 +339,7 @@ class MMU():
 
 
         frameId = page.frame
+        page.chance = 1
         ##calculamos la direccion fisica resultante
         frameBaseDir  = self._frameSize * frameId
         physicalAddress = frameBaseDir + offset

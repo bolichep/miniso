@@ -14,7 +14,7 @@ if __name__ == '__main__':
     log.logger.info('Starting emulator')
 
     ## setup our hardware and set memory size to 32 "cells"
-    HARDWARE.setup(4)
+    HARDWARE.setup(8)
     HARDWARE.timeUnit = 1
 
     SCHEDULER_FCFS = 'FCFS'
@@ -53,8 +53,8 @@ if __name__ == '__main__':
     # Ahora vamos a intentar ejecutar 3 programas a la vez
     ##################
     prg1 = Program([ASM.CPU(1)])   
-    prg2 = Program([ASM.INCA(4), ASM.CPU(4)])
-    prg3 = Program([ASM.CPU(4), ASM.IO(), ASM.CPU(1)]) 
+    prg2 = Program([ASM.INCA(1),ASM.IO()])
+    prg3 = Program([ASM.CPU(1), ASM.IO(), ASM.CPU(1)]) 
 
     # CALL RET Stack TEST
     calltest = Program([

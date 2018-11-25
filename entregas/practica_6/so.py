@@ -145,9 +145,10 @@ class KillInterruptionHandler(AbstractInterruptionHandler):
         self.contextSwitchFromRunningTo(State.sterminated)
         pages= self.kernel.memoryManager.getPageTable(pcb.pid)
         for i in range(0, len(pages)):
-        	if(pages[i].frame != None):
-        		print("Pagina a liberar en KILL ", pages[i])
-        		self.kernel._memoryManager.freeFrames(pages[i].returnFrame)
+            if(pages[i].frame != None):
+                print("Pagina a liberar en KILL ", pages[i])
+                self.kernel._memoryManager.freeFrames(pages[i].returnFrame)
+                self.kernel._memoryManager.removePageFinished(pages[i])
 
 
 class NewInterruptionHandler(AbstractInterruptionHandler):
@@ -217,6 +218,7 @@ class PageFaultInterruptionHandler(AbstractInterruptionHandler):
         pages = self.kernel.memoryManager.getPageTable(runningPCB.pid)
         self.kernel.dispacher.loadTlb(pages)
         log.logger.info(self._kernel.hardware)
+        print("pcb en ejecucion ------->", runningPCB)
 
 #emul dispacher
 class Dispacher():
@@ -386,7 +388,7 @@ class ProcessControlBlock():
         self._state = state
 
     def __repr__(self):
-        return "PCB: pid:{:>3} prio:{:>2} baseDir:{:>3} pc:{:>3} limit:{:>3} state: {}\n".format(
+        return "PCB: pid:{:>3} prio:{:>2} baseDir:{:>3} pc:{} limit:{} state: {}\n".format(
                 self._pid, self._priority, self._baseDir, self._pc, self._limit, self._state)
 
 # emulates the loader program( prueba)
@@ -639,6 +641,7 @@ class Fsb:
     def read(self, fname):
         return self._fs.get(fname)
 
+
 class Page:
     
     def __init__(self, pid):
@@ -649,7 +652,7 @@ class Page:
         self._pid = pid
 
     def __repr__(self):
-        return "Frame:{} dty:{} cha:{} pid:{}\n".format(self._frame, self._dirty, self._chance, self._pid)
+        return "Frame:{} dty:{} validBit:{} cha:{} pid:{}\n".format(self._frame, self._dirty, self._validBit, self._chance, self._pid)
 
     @property
     def isValid(self):
@@ -657,21 +660,18 @@ class Page:
 
     @property
     def frame(self):
-        if not self._validBit:
-            raise Exception("no tiene frame esta pagina") 
-        res = self._frame
-        return res
+        return self._frame
     
     @frame.setter
     def frame(self, frame):
          self._frame = frame
          self._validBit =  True
+
     @property
     def returnFrame(self):
         if not self._validBit:
             raise Exception("no tiene frame esta pagina") 
-
-        self._vaildBit = False
+        self._validBit = False 
         return self._frame
         
 
@@ -704,14 +704,24 @@ class SecondChance:
             if maxIt <= iterator:
                 iterator=0
 
-        return ret
+        return ret , iterator
 
     def selectVictim(self, page):
         print("Pagina que intento desalojar: ", page)
-        if page.chance == 1:
+        if page.chance == 1 :
             page.chance = 0
-        else:
+        else :
             return page
+
+
+class FIFO:
+
+    def chooseOne(self, usedFrames):
+        if usedFrames : 
+            return usedFrames[0], 0
+        else :
+            raise Exception("\n*\n* ERROR \n*\n Error no se encuentran frames ocupados\n")
+
             
 
 
@@ -730,6 +740,7 @@ class MemoryManager:
         if numberOfFrames <= len(self._freeFrames):
             allocatedFrames = self._freeFrames[0:numberOfFrames]
             self._freeFrames = self._freeFrames[numberOfFrames:]
+
         else:
             allocatedFrames = []
         #print("Allocating: ", allocatedFrames, "Frees: ",  self._freeFrames, "FrameSize: ", self._frameSize)
@@ -747,7 +758,8 @@ class MemoryManager:
             #print("cantidad paginas ,", len(self._pageTables))
             if not self.hasFreeFrame():
                 self._freeFrames.append(self.chooseVictim())
-            
+                print("paginas en memoria luego de sacarALaVictima ->>>>>>>", self._freeFrames)
+
             return self._freeFrames.pop(0)
 
     def hasFreeFrame(self):
@@ -755,16 +767,16 @@ class MemoryManager:
         return self._freeFrames
 
     def getPage(self, pid, pageNumber):
-        process = self._pageTables[pid]
-        print("Pagina de proceso ", process)
-        return process[pageNumber]
+        pagesprocess = self._pageTables[pid]
+        print("Pagina de proceso ", pagesprocess)
+        return pagesprocess[pageNumber]
 
     def chooseVictim(self):
-       pageToRemove = self._victimSelector.chooseOne(self._pagesInMemory)
+       pageToRemove , pageUsedNumber = self._victimSelector.chooseOne(self._pagesInMemory)
        #print("pagina a Desalojar", pageToRemove)
        newFreeFrame = pageToRemove.returnFrame     #volverAka
-       self.removePage(pageToRemove)
-       print("Frame libre EN CHOOSE VICTIM ", newFreeFrame)
+       self.removePage(pageUsedNumber)
+       print("Frame libre EN CHOOSE VICTIM ", newFreeFrame, pageToRemove)
        #print("pagina desalojada",pageToRemove)
        #print("Estado de la page table", self._pageTables)
        return newFreeFrame
@@ -780,10 +792,15 @@ class MemoryManager:
     def frameSize(self):
         return self._frameSize
     
+    def removePageFinished(self, page):
+       self._pagesInMemory.remove(page)
 
-    def removePage(self, page):
-        self._pagesInMemory.remove(page)
-        page.frame = None
+    def removePage(self, pageNumber):
+        print("pagina a remover en mm ------------------>", pageNumber)
+        print("paginas ocupando memoria  ------------------>", self._pagesInMemory)
+        self._pagesInMemory.pop(pageNumber)
+        print("paginas ocupando memoria despues de desalojo ------------------>", self._pagesInMemory)
+        #self._pagesInMemory.remove(page)
        	#pidPages = self._pageTables.get(pid)
 
         #self._pageTables.update({page.pid: pidPages})
