@@ -153,10 +153,9 @@ class NewInterruptionHandler(AbstractInterruptionHandler):
         programName, programCode, priority = irq.parameters
         priority = 4 if priority > 4 or priority < 0 else priority
         log.logger.info("New loading {} {}".format(programName, priority))
-        pages, limit = self.kernel.loader.load(programName)
+        pages, limit = self.kernel.loader.create(programName)
         pcb = ProcessControlBlock(programName, priority, pages, limit)
         pcb.state = State.snew
-        #pcb.pages = pages
         self.kernel.memoryManager.putPageTable(pcb.pid, pages)
         self.kernel.pcbTable.update(pcb) #add pcb
         # to ready or running
@@ -193,6 +192,15 @@ class TimeoutInterruptionHandler(AbstractInterruptionHandler):
         else:
             self.kernel.dispacher.resetTimer()
 
+class PageFaultInterruptionHandler(AbstractInterruptionHandler):
+
+    def execute(self, irq):
+        pageId = irq.parameters
+
+        self.kernel.loader.loadPage(pageId, allocFrame())
+
+        print("runningPCB: ", self.kernel.pcbTable.runningPCB)
+        print("PAGE FAULT", pageId)
 
 #emul dispacher
 class Dispacher():
@@ -365,12 +373,38 @@ class Loader():
     def memoryPos(self, value):
         self._memoryPos = value
 
+    # denota una lista con Page()s vacios y el limite o largo del prog -1
+    def create(self, path):
+        programCode = self._fs.read(path)
+        programSize = len(programCode.instructions)
+        pagesToCreate = programSize // self._mm._frameSize
+        # limit = programSize - 1
+        return [Page() for x in range(0, pagesToCreate)], programSize - 1 
+
+    """    
+    # Load a page from disk, fs or (...swap ?)
+    # we got a frame where to write the page that
+    # we load from path (or...)
+    """
+    def loadPage(self, path, pageId, frameId):
+        programCode = self._fs.read(path)
+        progSize  = len(programCode.instructions)
+        seekFrom  = pageId * self._mm._frameSize
+        seekTo    = seekFrom + self._mm._frameSize
+        pageOfCode = programCode.instructions[seekFrom, seekTo]
+       
+        physicalAddress = frameId * self._mm._frameSize
+        for instruction in pageOfCode:
+            self._mm.memory.put(physicalAddress, instruction)
+            physicalAddress += 1
+
+
     def load(self, path):
         programCode = self._fs.read(path)
         progSize = len(programCode.instructions)
         pages = self._mm.allocFrames(progSize)
-        print("loader.load", pages)
         if not pages:
+            print(" SEPARAR LOAD y CREATE" )
             raise Exception("\x9B37;44m\x9B2J\x9B12;18HException: No Hay memoria. [BSOD]... o demandá ;P \x9B14;18H(!!!)\x9B0m")
 
         for instAddr in range(0, progSize):
@@ -378,7 +412,6 @@ class Loader():
             frameId = pages[instAddr // self._mm._frameSize].frame
             physicalAddress = offset + frameId  * self._mm._frameSize
             inst = programCode.instructions[instAddr]
-            print("physical:",physicalAddress, "inst:", inst)
             self._mm.memory.put(physicalAddress, inst)
 
         return pages, progSize - 1 # limit = progSize - 1
@@ -571,7 +604,8 @@ class Fsb:
     def read(self, fname):
         return self._fs.get(fname)
 
-class frameDummy:
+# QQ
+class frameDummy: # dummy counter while migrate to demand
     number = -1
     @classmethod
     def new(self):
@@ -580,9 +614,9 @@ class frameDummy:
 
 class Page:
 
-    # temporaly asign a frame number instead of None
+    # temporaly assign a frame number instead of None
     def __init__(self):
-        self._frame = frameDummy.new()
+        self._frame = frameDummy.new() # QQ
         self._dirty = False
         self._chance = 0
 
@@ -601,9 +635,14 @@ class MemoryManager:
 
     def __init__(self, memory, frameSize):
         self._memory = memory
-        self._freeFrames = [Page() for x in range (0,(memory.getLeng() // frameSize)) ]
+        #self._freeFrames = [Page() for x in range (0,(memory.getLeng() // frameSize)) ]
+        ### or keep a list of free framesIds
+        self._freeFrames = [x for x in range(0,memory.getLeng() // frameSize)] 
         self._frameSize = frameSize
         self._pageTable = dict()
+
+    def allocFrame(self):
+        return self._freeFrames.pop() if self._freeFrames else []
 
     def allocFrames(self, numberOfCells):
         framesToAlloc = 1 if numberOfCells % self._frameSize else 0
@@ -655,6 +694,8 @@ class Kernel():
         timeoutHandler = TimeoutInterruptionHandler(self)
         self._hardware.interruptVector.register(TIMEOUT_INTERRUPTION_TYPE, timeoutHandler)
 
+        pageFaultHandler = PageFaultInterruptionHandler(self)
+        self._hardware.interruptVector.register(PAGE_FAULT_INTERRUPTION_TYPE, pageFaultHandler)
 
         ## controls the Hardware's I/O Device
         self._ioDeviceController = IoDeviceController(self._hardware.ioDevice)

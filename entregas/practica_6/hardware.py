@@ -311,7 +311,7 @@ class MMU():
     # pageId is a number (of page),
     # frameRef is a instance of Page() (from so.py)
     def setPageFrame(self, pageId, frameRef):
-        print("setPageFrame: pageId:", pageId, " frameRef:", frameRef)
+        #print("setPageFrame: pageId:", pageId, " frameRef:", frameRef)
         self._tlb[pageId] = frameRef
 
     def logicalToPhysicalAddress(self, logicalAddress):
@@ -322,11 +322,19 @@ class MMU():
         pageId = logicalAddress // self._frameSize
         offset = logicalAddress % self._frameSize
 
-        # buscamos la direccion Base del frame donde esta almacenada la pagina
-        try:
-            frameId = self._tlb[pageId].frame
-        except:
-            raise Exception("\n*\n* ERROR \n*\n Error en el MMU\nNo se cargo la pagina  {pageId}".format(pageId = str(pageId)))
+        # if isValid : 
+        #   buscamos la direccion Base del frame donde esta 
+        #   almacenada la pagina
+        # else: page Fault
+        if pageId in self._tlb and self._tlb[pageId].isValid():
+            try:
+                frameId = self._tlb[pageId].frame
+            except:
+                raise Exception("\n*\n* ERROR \n*\n Error en el MMU\nNo se cargo la pagina  {pageId}".format(pageId = str(pageId)))
+        else:
+            pageFaultIRQ = IRQ(PAGE_FAULT_INTERRUPTION_TYPE, pageId)
+            HARDWARE.cpu._interruptVector.handle(pageFaultIRQ)
+            
 
         ##calculamos la direccion fisica resultante
         frameBaseDir  = self._frameSize * frameId
