@@ -52,9 +52,9 @@ if __name__ == '__main__':
 
     # Ahora vamos a intentar ejecutar 3 programas a la vez
     ##################
-    prg1 = Program([ASM.CPU(1)])   
-    prg2 = Program([ASM.INCA(1),ASM.IO()])
-    prg3 = Program([ASM.CPU(1), ASM.IO(), ASM.CPU(1)]) 
+    prg1 = Program([ASM.CPU(4)])   
+    prg2 = Program([ASM.INCA(1), ASM.CPU(4), ASM.IO()])
+    prg3 = Program([ASM.CPU(3), ASM.IO(), ASM.CPU(1)]) 
 
     # CALL RET Stack TEST
     calltest = Program([

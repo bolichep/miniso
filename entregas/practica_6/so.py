@@ -658,6 +658,10 @@ class Page:
     def isValid(self):
         return self._validBit
 
+    @isValid.setter
+    def isValid(self, bool):
+    	self._validBit = bool
+
     @property
     def frame(self):
         return self._frame
@@ -793,13 +797,17 @@ class MemoryManager:
         return self._frameSize
     
     def removePageFinished(self, page):
-       self._pagesInMemory.remove(page)
+    	self._pagesInMemory.remove(page)
+    	page.frame = None
+    	page.isValid = None
 
     def removePage(self, pageNumber):
-        print("pagina a remover en mm ------------------>", pageNumber)
-        print("paginas ocupando memoria  ------------------>", self._pagesInMemory)
-        self._pagesInMemory.pop(pageNumber)
-        print("paginas ocupando memoria despues de desalojo ------------------>", self._pagesInMemory)
+        #print("pagina a remover en mm ------------------>", pageNumber)
+        #print("paginas ocupando memoria  ------------------>", self._pagesInMemory)
+        page = self._pagesInMemory.pop(pageNumber)
+        page.frame = None
+        page.isValid = None
+        #print("paginas ocupando memoria despues de desalojo ------------------>", self._pagesInMemory)
         #self._pagesInMemory.remove(page)
        	#pidPages = self._pageTables.get(pid)
 
