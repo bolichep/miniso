@@ -296,6 +296,7 @@ class ProcessControlBlock():
         self._context = (0, 0, 0, -1, True) # keep sync with hardware#330
         self._path = programName
         self._priority = priority 
+        self._pages = pages
 
     @property
     def context(self):
@@ -346,8 +347,8 @@ class ProcessControlBlock():
         self._state = state
 
     def __repr__(self):
-        return "PCB: pid:{:>3} prio:{:>2} baseDir:{:>3} pc:{:>3} limit:{:>3} state: {}\n".format(
-                self._pid, self._priority, self._baseDir, self._pc, self._limit, self._state)
+        return "PCB: pid:{:>3} prio:{:>2} pc:{:>3} limit:{:>3} state: {} pages: {}\n".format(
+                self._pid, self._priority, self._pc, self._limit, self._state, self._pages)
 
 # emulates the loader program( prueba)
 class Loader():
