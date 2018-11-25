@@ -62,13 +62,13 @@ class ASM():
         return value
 
     @classmethod
-    def __afterCount(self, instructions):
+    def __instrsAfterCount(self, instructions):
         self.addrCounter += len(instructions)
         return instructions
 
     @classmethod
     def HEADER(self, space):
-        return self.__afterCount(
+        return self.__instrsAfterCount(
                 [INSTRUCTION_JMP, str(space)] + ['0']* (space-2))
 
     @classmethod
@@ -78,83 +78,83 @@ class ASM():
 
     @classmethod
     def JNZ(self, address):
-        return self.__afterCount([INSTRUCTION_JNZ, str(address)])
+        return self.__instrsAfterCount([INSTRUCTION_JNZ, str(address)])
 
     @classmethod
     def JZ(self, address):
-        return self.__afterCount([INSTRUCTION_JZ, str(address)])
+        return self.__instrsAfterCount([INSTRUCTION_JZ, str(address)])
 
     @classmethod
     def JMP(self, address):
-        return self.__afterCount([INSTRUCTION_JMP, str(address)])
+        return self.__instrsAfterCount([INSTRUCTION_JMP, str(address)])
 
     @classmethod
     def CALL(self, address):
-        return self.__afterCount([INSTRUCTION_CALL, str(address)])
+        return self.__instrsAfterCount([INSTRUCTION_CALL, str(address)])
 
     @classmethod
     def RET(self):
-        return self.__afterCount([INSTRUCTION_RET])
+        return self.__instrsAfterCount([INSTRUCTION_RET])
 
     @classmethod
     def STORA(self, value):
-        return self.__afterCount([INSTRUCTION_STORA, str(value)])
+        return self.__instrsAfterCount([INSTRUCTION_STORA, str(value)])
 
     @classmethod
     def STORB(self, value):
-        return self.__afterCount([INSTRUCTION_STORB, str(value)])
+        return self.__instrsAfterCount([INSTRUCTION_STORB, str(value)])
 
     @classmethod
     def DECA(self, times):
-        return self.__afterCount([INSTRUCTION_DECA] * times)
+        return self.__instrsAfterCount([INSTRUCTION_DECA] * times)
 
     @classmethod
     def INCA(self, times):
-        return self.__afterCount([INSTRUCTION_INCA] * times)
+        return self.__instrsAfterCount([INSTRUCTION_INCA] * times)
 
     @classmethod
     def INCB(self, times):
-        return self.__afterCount([INSTRUCTION_INCB] * times)
+        return self.__instrsAfterCount([INSTRUCTION_INCB] * times)
 
     @classmethod
     def DECB(self, times):
-        return self.__afterCount([INSTRUCTION_DECB] * times)
+        return self.__instrsAfterCount([INSTRUCTION_DECB] * times)
 
     @classmethod
     def ADDAB(self):
-        return self.__afterCount([INSTRUCTION_ADDAB])
+        return self.__instrsAfterCount([INSTRUCTION_ADDAB])
 
     @classmethod
     def CMPAB(self):
-        return self.__afterCount([INSTRUCTION_CMPAB])
+        return self.__instrsAfterCount([INSTRUCTION_CMPAB])
 
     @classmethod
     def PUSHA(self):
-        return self.__afterCount([INSTRUCTION_PUSHA])
+        return self.__instrsAfterCount([INSTRUCTION_PUSHA])
 
     @classmethod
     def POPA(self):
-        return self.__afterCount([INSTRUCTION_POPA])
+        return self.__instrsAfterCount([INSTRUCTION_POPA])
 
     @classmethod
     def PUSHB(self):
-        return self.__afterCount([INSTRUCTION_PUSHB])
+        return self.__instrsAfterCount([INSTRUCTION_PUSHB])
 
     @classmethod
     def POPB(self):
-        return self.__afterCount([INSTRUCTION_POPB])
+        return self.__instrsAfterCount([INSTRUCTION_POPB])
 
     @classmethod
     def EXIT(self, times):
-        return self.__afterCount([INSTRUCTION_EXIT] * times)
+        return self.__instrsAfterCount([INSTRUCTION_EXIT] * times)
 
     @classmethod
     def IO(self):
-        return self.__afterCount([INSTRUCTION_IO])
+        return self.__instrsAfterCount([INSTRUCTION_IO])
 
     @classmethod
     def CPU(self, times):
-        return self.__afterCount([INSTRUCTION_CPU] * times)
+        return self.__instrsAfterCount([INSTRUCTION_CPU] * times)
 
     @classmethod
     def isEXIT(self, instruction):
