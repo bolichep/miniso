@@ -153,8 +153,8 @@ class NewInterruptionHandler(AbstractInterruptionHandler):
         programName, programCode, priority = irq.parameters
         priority = 4 if priority > 4 or priority < 0 else priority
         log.logger.info("New loading {} {}".format(programName, priority))
-        pages, baseDir, limit = self.kernel.loader.load(programName)
-        pcb = ProcessControlBlock(programName, priority, baseDir, limit)
+        pages, limit = self.kernel.loader.load(programName)
+        pcb = ProcessControlBlock(programName, priority, pages, limit)
         pcb.state = State.snew
         #pcb.pages = pages
         self.kernel.memoryManager.putPageTable(pcb.pid, pages)
@@ -202,7 +202,6 @@ class Dispacher():
     def load(self, pcb):
         #HARDWARE.cpu.pc = pcb.pc
         HARDWARE.cpu.context = pcb.context #all reg in a big tuple
-        HARDWARE.mmu.baseDir = pcb.baseDir
         HARDWARE.mmu.limit = pcb.limit
         HARDWARE.mmu.resetTLB()
         pages = self._kernel.memoryManager.getPageTable(pcb.pid)
@@ -288,9 +287,8 @@ class pid():
 # emulates a  pcb(creado por mi :S)
 class ProcessControlBlock():
 
-    def __init__(self, programName, priority, pages = [], baseDir = 0, limit = 0):
+    def __init__(self, programName, priority, pages = [], limit = 0):
         self._pid = pid.new()
-        self._baseDir = baseDir
         self._limit = limit
         self._pc  = 0 # TODO check if keep that
         self._state =State.snew
@@ -324,18 +322,10 @@ class ProcessControlBlock():
         return self._path
 
     @property
-    def baseDir(self):
-        return self._baseDir
-
-    @baseDir.setter
-    def baseDir(self, value):
-        self._baseDir = value
-
-    @property
     def limit(self):
         return self._limit
 
-    @baseDir.setter
+    @limit.setter
     def limit(self, value):
        self._limit = value
 
@@ -383,16 +373,14 @@ class Loader():
             raise Exception("\x9B37;44m\x9B2J\x9B12;18HException: No Hay memoria. [BSOD]... o demandá ;P \x9B14;18H(!!!)\x9B0m")
         
         for instAddr in range(0, progSize):
-            pageId = instAddr % self._mm._frameSize
-            offset = pages[instAddr // self._mm._frameSize]
-            physicalAddress = pageId + offset * self._mm._frameSize
+            offset = instAddr % self._mm._frameSize
+            pageId = pages[instAddr // self._mm._frameSize]
+            physicalAddress = offset + pageId  * self._mm._frameSize
             inst = programCode.instructions[instAddr]
             self._mm.memory.put(physicalAddress, inst)
             #print(physicalAddress, inst)
 
-        # TODO eliminar baseDir
-        baseDir = 0
-        return pages, baseDir, progSize - 1 # limit = progSize - 1
+        return pages, progSize - 1 # limit = progSize - 1
 
 
 class AbstractScheduler():
@@ -553,17 +541,6 @@ class Gantt():
             if pcb.pid not in self._graph:
                 self._graph[pcb.pid] = "{}   {}    {}".format(pcb.pid, pcb.priority, " " * self._ticks)
 
-
-            """
-            if pcb.state == State.srunning:
-                self._graph[pcb.pid] += "\x9B7mR\x9B0m"
-            elif pcb.state == State.sready:
-                self._graph[pcb.pid] += "r"
-            elif pcb.state == State.swaiting:
-                self._graph[pcb.pid] += "w"
-            else:
-                self._graph[pcb.pid] += "."
-                """
             case = {State.srunning   : "\x9B7mR\x9B0m", 
                     State.sready     : "r",
                     State.swaiting   : "w",
