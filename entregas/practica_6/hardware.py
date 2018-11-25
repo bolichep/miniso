@@ -338,6 +338,9 @@ class MMU():
         # obtenemos la instrucción alocada en esa direccion
         return self._memory.get(self.logicalToPhysicalAddress(logicalAddress))
 
+    def __repr__(self):
+        return "MMU: memory:{}\nframeSize:{} limit:{} tlb:{}".format( self._memory, self._frameSize, self._limit, self._tlb)
+
 
 ## emulates the main Central Processor Unit
 class Cpu():
