@@ -307,6 +307,11 @@ class MMU():
 
     def updateTLB(self, pageNumber, page):
         self._tlb.update({pageNumber: page})
+        print(self._tlb)
+
+    @property    
+    def getPages(self):
+        return list(self._tlb.values())
 
     def resetTLB(self):
         self._tlb = dict()
@@ -332,12 +337,13 @@ class MMU():
             pageFaultIRQ = IRQ(PAGE_FAULT_INTERRUPTION_TYPE, pageId)
             HARDWARE.cpu._interruptVector.handle(pageFaultIRQ)
             page = self._tlb[pageId]
-            print(" -----------  DESPUES DE # PAGE_FAULT")
-            print(page)
-            print(" -----------  DESPUES DE # PAGE_FAULT")
+            #print(" -----------  DESPUES DE # PAGE_FAULT")
+            #print(page)
+            #print(" -----------  DESPUES DE # PAGE_FAULT")
 
         frameId = page.frame
         page.chance = 1
+        #page.dirty = True para probar la cargar y busqueda del swap
         ##calculamos la direccion fisica resultante
         frameBaseDir  = self._frameSize * frameId
         physicalAddress = frameBaseDir + offset
@@ -346,11 +352,22 @@ class MMU():
 
     def write(self, logicalAddress, value):
         self._memory.put(self.logicalToPhysicalAddress(logicalAddress), value)
+        pageId = logicalAddress // self._frameSize
+        page = self._tlb.get(pageId)
+        page.dirty = True
+        self._tlb.update({pageId:page})
+
 
     def fetch(self,  logicalAddress):
         # obtenemos la instrucción alocada en esa direccion
         return self._memory.get(self.logicalToPhysicalAddress(logicalAddress))
 
+    def fetchInstr(self, frameId):
+        listInst = []
+        for nInst in range(self._frameSize):
+            listInst.append(self._memory.get(frameId+nInst))
+        print("------------------------>inst listInst", listInst)
+        return listInst
 
 ## emulates the main Central Processor Unit
 class Cpu():
@@ -358,13 +375,13 @@ class Cpu():
     def __init__(self, mmu, interruptVector):
         self._mmu = mmu
         self._interruptVector = interruptVector
-        self._pc = -1
-        self._ir = None
-        self._or = None
-        self._ac = 0
-        self._bc = 0
-        self._zf = True
-        self._sp = -1
+        self._pc = -1 # program counter
+        self._ir = None #instruction register
+        self._or = None #
+        self._ac = 0    #acumulator?
+        self._bc = 0    #
+        self._zf = True #zero flag
+        self._sp = -1 #stack pointer
 
     def tick(self, tickNbr):
         if (self._pc > -1):

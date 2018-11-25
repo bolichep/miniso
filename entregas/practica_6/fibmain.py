@@ -14,7 +14,7 @@ if __name__ == '__main__':
     log.logger.info('Starting emulator')
 
     ## setup our hardware and set memory size to 32 "cells"
-    HARDWARE.setup(64)
+    HARDWARE.setup(32)
     HARDWARE.timeUnit = 0.01
 
     SCHEDULER_FCFS = 'FCFS'
@@ -23,7 +23,7 @@ if __name__ == '__main__':
     SCHEDULER_P = 'P'
 
     #scheduler choose
-    sche = SCHEDULER_RR #<<<<<<< choose here or at cli
+    sche = SCHEDULER_P #<<<<<<< choose here or at cli
 
     if len(sys.argv) > 1:
         sche = sys.argv[1]
@@ -49,13 +49,13 @@ if __name__ == '__main__':
 
     ## new create the Operative System Kernel
     # "booteamos" el sistema operativo
-    kernel = Kernel(HARDWARE,scheduler, frameSize = 8)
+    kernel = Kernel(HARDWARE,scheduler, frameSize = 4)
     # sleep(1)
 
     # Ahora vamos a intentar ejecutar 3 programas a la vez
     ##################
-    prg1 = Program([ASM.CPU(2), ASM.IO(), ASM.CPU(3), ASM.IO(), ASM.CPU(2)])
-    prg2 = Program([ASM.INCA(3), ASM.CPU(4)])
+    prg1 = Program([ASM.CPU(1), ASM.IO(), ASM.CPU(1)])
+    prg2 = Program([ASM.INCA(1), ASM.IO()])
     prg3 = Program([ASM.CPU(4), ASM.IO(), ASM.CPU(1)])
 
     # CALL RET Stack TEST
@@ -77,7 +77,7 @@ if __name__ == '__main__':
     """
     fib = Program([
         ASM.HEADER(16),
-        ASM.STORA('10'),      # fib(10) 2200 tick +/-
+        ASM.STORA('6'),      # fib(10) 2200 tick +/-
         ASM.CALL('FIB'),
         ASM.EXIT(1),
 
@@ -125,14 +125,14 @@ if __name__ == '__main__':
         ]))
 
     kernel.fileSystem.write("/fib", fib)
-    kernel.fileSystem.write("/bin/calltest", calltest)
+    #kernel.fileSystem.write("/bin/calltest", calltest)
     kernel.fileSystem.write("/prg1", prg1)
     kernel.fileSystem.write("/prg2", prg2)
     kernel.fileSystem.write("/prg3", prg3)
     # execute all programs "concurrently"
     #kernel.run("/bin/calltest", 1)
+    #kernel.run("/prg1",0)
     #kernel.run("/prg2",0)
-    #kernel.run("/prg3",0)
     #kernel.run("/prg3",2)
     #sleep(32 * HARDWARE.timeUnit)
     #kernel.run("/prg1",1)
