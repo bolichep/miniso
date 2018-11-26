@@ -385,8 +385,7 @@ class Loader():
         pagesToCreate = programSize // self._mm._frameSize
         pagesToCreate += 1 if programSize % self._mm._frameSize > 1 else 0
         # limit = programSize - 1
-        # return [Page() for x in range(0, pagesToCreate)], programSize - 1
-        return [Page() for x in range(0, pagesToCreate)], programSize
+        return [Page() for x in range(0, pagesToCreate)], programSize - 1
 
     """
     # Load a page from disk, fs or (...swap ?)
