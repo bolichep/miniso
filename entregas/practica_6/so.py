@@ -751,8 +751,8 @@ class SecondChance:
 
     def selectVictim(self, page):
         #print("Pagina que intento desalojar: ", page)
-        if page.isValid == True :
-            page.isValid = False
+        if page.chance == 1:
+            page.chance = 0
         else :
             return page
 
