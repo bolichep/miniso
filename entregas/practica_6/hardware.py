@@ -335,9 +335,8 @@ class MMU:
         else: #(2)
             pageFaultIRQ = IRQ(PAGE_FAULT_INTERRUPTION_TYPE, pageId)
             frameId = HARDWARE.cpu._interruptVector.handle(pageFaultIRQ)
-            print("And Now is Valid:\n", pageId, frameId, "\n", self._tlb)
             self._tlb[pageId].frame = frameId #(5) And now isValid
-
+            print("And Now is Valid:\n", pageId, frameId, "\n", self._tlb)
 
         ##calculamos la direccion fisica resultante
         frameBaseDir  = self._frameSize * frameId
@@ -352,6 +351,7 @@ class MMU:
 
     def fetch(self,  logicalAddress):
         # obtenemos la instrucción alocada en esa direccion
+        #(6)
         return self._memory.get(self.logicalToPhysicalAddress(logicalAddress))
 
     def __repr__(self):
@@ -366,6 +366,7 @@ class Cpu():
         self._interruptVector = interruptVector
         self._pc = -1
         self._ir = None
+        self._or = None
         self._ac = 0
         self._bc = 0
         self._zf = True

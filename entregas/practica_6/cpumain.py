@@ -14,7 +14,7 @@ if __name__ == '__main__':
     log.logger.info('Starting emulator')
 
     ## setup our hardware and set memory size to 8 "cells"
-    HARDWARE.setup(8)
+    HARDWARE.setup(16)
 
     SCHEDULER_FCFS = 'FCFS'
     SCHEDULER_RR = 'RR'
@@ -51,21 +51,35 @@ if __name__ == '__main__':
 
     # Ahora vamos a intentar ejecutar 3 programas a la vez
     ##################
-    prg1 = Program([ASM.CPU(2), ASM.IO(), ASM.CPU(3), ASM.IO(), ASM.CPU(2)])   
-    prg2 = Program([ASM.INCA(3), ASM.CPU(4)])
-    prg3 = Program([ASM.CPU(4), ASM.IO(), ASM.CPU(1)]) 
+    prg1 = Program([
+        ASM.STORA(2),
+        ASM.LABEL('START'),
+        ASM.CPU(8),
+        ASM.IO(),
+        ASM.CPU(8),
+        ASM.IO(),
+        ASM.DECA(1),
+        ASM.JNZ('START'),
+        ASM.CPU(2),
+        ASM.EXIT(1)])  # A = 0 
 
-    kernel.fileSystem.write("prg1.exe", prg1)
-    kernel.fileSystem.write("prg2.exe", prg2)
-    kernel.fileSystem.write("prg3.exe", prg3)
+    prg2 = Program([
+        ASM.STORA(0), #0
+        ASM.STORB(5), #1
+        ASM.LABEL('START'), #2
+        ASM.INCA(1), #2
+        ASM.CMPAB(), #3
+        ASM.JNZ('START'),
+        ASM.EXIT(1)])  # A = 0 
+
+    prg3 = Program([ASM.CPU(4), ASM.STORA(42), ASM.STORB(17), ASM.IO(), ASM.CPU(1)]) 
+
+    kernel.fileSystem.write("/bin/prg1", prg1)
+    kernel.fileSystem.write("/bin/prg2", prg2)
+    kernel.fileSystem.write("/bin/prg3", prg3)
     # execute all programs "concurrently"
-    #kernel.run("prg1.exe",1)
-    #kernel.run("prg2.exe",0)
-    #kernel.run("prg3.exe",0)
-    ##kernel.run("prg3.exe",2)
-    #sleep(16)
-    #kernel.run("prg1.exe",1)
-    #kernel.run("prg2.exe",0)
-    #kernel.run("prg3.exe",0)
+    #kernel.run("/bin/prg1",1)
+    #kernel.run("/bin/prg2",0)
+    kernel.run("/bin/prg3",0)
 
     shell.com(kernel)

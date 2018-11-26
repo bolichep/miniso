@@ -199,9 +199,10 @@ class PageFaultInterruptionHandler(AbstractInterruptionHandler):
         pageId = irq.parameters
         pcb = self.kernel.pcbTable.runningPCB
         hasFrame, frameId = self.kernel._memoryManager.allocFrame()
+        #print("Frame allocated:", frameId, "hasFrame:", hasFrame,"for Page:", pageId)
         if hasFrame:
             self.kernel.loader.loadPage(pcb.path, pageId, frameId)
-            print(HARDWARE.memory)
+            #print(HARDWARE.memory)
         else:
             print("FATAL ERROR No Frames to alloc", pageId)
             raise Exception("\n*\n* FATAL ERROR No Frames to alloc\n*\n")
@@ -384,7 +385,8 @@ class Loader():
         pagesToCreate = programSize // self._mm._frameSize
         pagesToCreate += 1 if programSize % self._mm._frameSize > 1 else 0
         # limit = programSize - 1
-        return [Page() for x in range(0, pagesToCreate)], programSize - 1
+        # return [Page() for x in range(0, pagesToCreate)], programSize - 1
+        return [Page() for x in range(0, pagesToCreate)], programSize
 
     """
     # Load a page from disk, fs or (...swap ?)
@@ -401,18 +403,11 @@ class Loader():
 
         physicalAddress = frameId * self._mm._frameSize
 
-        print("At load Page:",
-            "programCode", programCode,
-            "progSize", progSize,
-            "seekFrom", seekFrom,
-            "seekTo" , seekTo ,
-            "pageOfCode", pageOfCode,
-            "physicalAddress", physicalAddress )
-
         for instruction in pageOfCode:
             self._mm.memory.put(physicalAddress, instruction)
             physicalAddress += 1
 
+        #print("At load Page:\n", "programCode", programCode, "progSize", progSize, "seekFrom", seekFrom, "seekTo" , seekTo , "pageOfCode", pageOfCode, "physicalAddress", physicalAddress )
 
     def load(self, path):
         programCode = self._fs.read(path)
@@ -578,6 +573,7 @@ class Gantt():
         self._kernel = kernel
         self._kernel.dispacher.addSubscriber(self)
         self._ticks = -1
+        self._quiet = False
         self._graph = dict()
 
     def ticks(self):
@@ -597,9 +593,10 @@ class Gantt():
                     State.sterminated: "."}
             self._graph[pcb.pid] += case[pcb.state]
 
-        log.logger.info("Gantt {} {}\npid prio (R)unning (r)eady (w)aiting".format(self._kernel._scheduler.name, self._ticks))
-        for (i, string) in self._graph.items():
-            log.logger.info(string)
+        if not self._quiet:
+            log.logger.info("Gantt {} {}\npid prio (R)unning (r)eady (w)aiting".format(self._kernel._scheduler.name, self._ticks))
+            for (i, string) in self._graph.items():
+                log.logger.info(string)
 
 
 # file system basico
@@ -662,28 +659,31 @@ class MemoryManager:
 
     def __init__(self, memory, frameSize):
         self._memory = memory
-        #self._freeFrames = [Page() for x in range (0,(memory.getLeng() // frameSize)) ]
-        ### or keep a list of free framesIds
-        ### and a list of used frames
-        self._freeFrames = [x for x in range(0,memory.getLeng() // frameSize)]
-        self._usedFrames = []
+        ## keep a list of free framesIds
+        ## and a list of used frameIds
+        self._freeFrameIds = [x for x in range(0,memory.getLeng() // frameSize)]
+        self._usedFrameIds = []
         self._frameSize = frameSize
         self._pageTable = dict()
 
     def allocFrame(self): #(3)
         # QQ
-        if self._freeFrames:
-            allocatedFrame =  self._freeFrames.pop()
-            self._usedFrames += [allocatedFrame]
+        print("IN  ALLOCFRAME:\n", self._pageTable, "\nEND of self.pageTable",  self._freeFrameIds,  self._usedFrameIds )
+        if self._freeFrameIds:
+            allocatedFrame = self.allocateFrame()
         else:
             allocatedFrame = self.deallocateFrame()
-        print("AllocFrame:", self._freeFrames, self._usedFrames)
+        print("OUT ALLOCFRAME:\n", self._pageTable, "\nEND of self.pageTable",  self._freeFrameIds,  self._usedFrameIds )
         return True, allocatedFrame
+
+    def allocateFrame(self):
+        self._usedFrameIds += [self._freeFrameIds.pop()]
+        return self._usedFrameIds[-1]
 
     def deallocateFrame(self):
         # QQ
-        self._freeFrames += [self._usedFrames.pop()]
-        return self._freeFrames[-1]
+        self._freeFrameIds += [self._usedFrameIds.pop()]
+        return self._freeFrameIds[-1]
 
     """
     def allocFrames(self, numberOfCells):
@@ -699,9 +699,10 @@ class MemoryManager:
     """
 
     def freeFrames(self, frames):
-        #print("Freeing: ", frames, "Prev Frees: ", self._freeFrames)
-        self._freeFrames += frames
-        #print("Current Frees: ", self._freeFrames)
+        #print("Freeing: ", frames, "Prev Frees: ", self._freeFrameIds)
+        FrameIds = [page.frame for page in frames]
+        [(self._usedFrameIds.remove(x), self._freeFrameIds.append(x)) for x in FrameIds]
+        #print("Current Frees: ", FrameIds)
 
     def putPageTable(self, pid, pages):
         self._pageTable.update({pid: pages})
