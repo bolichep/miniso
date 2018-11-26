@@ -147,7 +147,7 @@ class KillInterruptionHandler(AbstractInterruptionHandler):
             if(pages[i].isValid == True):
                 #print("Pagina a liberar en KILL ", pages[i])
                 self.kernel._memoryManager.freeFrames(pages[i].returnFrame)
-                self.kernel._memoryManager.removePageFinished(pages[i])
+                self.kernel._memoryManager.removePage(pages[i])
 
 
 class NewInterruptionHandler(AbstractInterruptionHandler):
@@ -422,16 +422,17 @@ class Loader():
         if (programSize % self._mm._frameSize > 0):
             pagesToCreate += 1
         for x in range(0, pagesToCreate):
-            pages.append(Page(pid))
+            pages.append(Page(pid, x))
         return pages
 
         
     def loadPage(self, pcb, page, pageId, frameId):
         #print("Frame a alocar: ", frameId)
-
-        if  page.dirty :
+        if  page.dirty:
             print("-------------> voy buscarlo a swap")
+            print("---------PID AND PAGE", pcb.pid, pageId)
             programCode = self._mm.getCodePage(pcb.pid, pageId)
+            print("----------------- Instrucciones ", programCode)
             offset = 0
             for inst in programCode :
                 self._mm.memory.put(frameId + offset, inst)
@@ -659,27 +660,32 @@ class SwapMemory:
         self._fs = dict()
 
     def saveProgram(self, pidProcess, page, instructions):
-        self._fs.update({(pidProcess, page):instructions})
-        print("-------------------------->save Program swapMemory", self._fs)
+    	self._fs.update({(pidProcess, page):instructions})
+    	print("-------------------------->save Program swapMemory", self._fs)
     
     def getCodePage(self, pidProcess, page):
-        return self._fs.get((pidProcess,page))
+    	return self._fs.get((pidProcess,page))
 
 
 
 
 class Page:
     
-    def __init__(self, pid):
+    def __init__(self, pid, number):
         self._frame = None
         self._dirty = False
         self._chance = 1
         self._validBit = False
         self._pid = pid
+        self._number = number
 
     def __repr__(self):
         return "Frame:{} dty:{} validBit:{} cha:{} pid:{}\n".format(self._frame, self._dirty, self._validBit, self._chance, self._pid)
 
+    @property
+    def number(self):
+    	return self._number
+    
     @property
     def isValid(self):
         return self._validBit
@@ -734,18 +740,19 @@ class SecondChance:
         iterator = 0
         maxIt = len(usedFrames)-1
         ret = None
+        pageNum = 0
         while iterator <= maxIt and ret == None:
             ret = self.selectVictim(usedFrames[iterator])
+            pageNum = iterator
             iterator += 1
             if maxIt <= iterator:
                 iterator=0
-
-        return ret , iterator
+        return ret
 
     def selectVictim(self, page):
         #print("Pagina que intento desalojar: ", page)
-        if page.chance == 1 :
-            page.chance = 0
+        if page.isValid == True :
+            page.isValid = False
         else :
             return page
 
@@ -808,14 +815,15 @@ class MemoryManager:
         return pagesprocess[pageNumber]
 
     def chooseVictim(self):
-       pageToRemove , pageUsedNumber = self._victimSelector.chooseOne(self._pagesInMemory)
+       pageToRemove = self._victimSelector.chooseOne(self._pagesInMemory)
        #print("pagina a Desalojar", pageToRemove)
-       if pageToRemove.dirty & pageToRemove.isValid:
-
+       print("PAGINA A REMOVEER ", pageToRemove)
+       if pageToRemove.dirty:
+       	   print("INFORMACION DE LA PAGINAA GUARDAR ", pageToRemove.pid, pageToRemove.number)
            instruct = HARDWARE.mmu.fetchInstr(pageToRemove.frame)
-           self.saveProgram(pageToRemove.pid, pageUsedNumber, instruct) 
+           self.saveProgram(pageToRemove.pid, pageToRemove.number, instruct) 
        newFreeFrame = pageToRemove.returnFrame     #volverAka
-       self.removePage(pageUsedNumber)
+       self.removePage(pageToRemove)
        #print("Frame libre EN CHOOSE VICTIM ", newFreeFrame, pageToRemove)
        #print("pagina desalojada",pageToRemove)
        #print("Estado de la page table", self._pageTables)
@@ -825,21 +833,18 @@ class MemoryManager:
         #print("pageTable :\n", self._pageTables)
         process = self._pageTables[pid]
         process[pageNumber] = page
+        page.isValid = True
         self._pagesInMemory.append(page)
         self._pageTables.update({pid: process}) 
 
     @property
     def frameSize(self):
         return self._frameSize
-    
-    def removePageFinished(self, page):
-    	self._pagesInMemory.remove(page)
-    	page.isValid = False
 
-    def removePage(self, pageNumber):
+    def removePage(self, page):
         #print("pagina a remover en mm ------------------>", pageNumber)
         #print("paginas ocupando memoria  ------------------>", self._pagesInMemory)
-        page = self._pagesInMemory.pop(pageNumber)
+        self._pagesInMemory.remove(page)
         page.isValid = False
         #print("paginas ocupando memoria despues de desalojo ------------------>", self._pagesInMemory)
         #self._pagesInMemory.remove(page)
@@ -864,7 +869,8 @@ class MemoryManager:
         return self._memory
 
     def saveProgram(self, pcbPid, pageNumber, listInstrucc):
-        return self._swapMemory.saveProgram(pcbPid, pageNumber, listInstrucc)
+    	print("GUARDANDO PROGRAMA ", pcbPid, pageNumber, listInstrucc)
+    	return self._swapMemory.saveProgram(pcbPid, pageNumber, listInstrucc)
 
     def getCodePage(self,pid, pageId):
         return self._swapMemory.getCodePage(pid, pageId)
