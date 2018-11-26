@@ -30,7 +30,7 @@ if __name__ == '__main__':
 
     if sche == SCHEDULER_RR:
         timer = HARDWARE.timer
-        timer.quantum = 2
+        timer.quantum = 4
         scheduler = SchedulerRRB()
     if sche == SCHEDULER_FCFS:
         scheduler = SchedulerFCFS()
@@ -52,8 +52,8 @@ if __name__ == '__main__':
 
     # Ahora vamos a intentar ejecutar 3 programas a la vez
     ##################
-    prg1 = Program([ASM.CPU(4)])   
-    prg2 = Program([ASM.INCA(1), ASM.CPU(4), ASM.IO()])
+    prg1 = Program([ASM.CPU(2), ASM.IO(), ASM.CPU(3), ASM.IO(), ASM.CPU(2)])
+    prg2 = Program([ASM.INCA(3), ASM.CPU(4)])
     prg3 = Program([ASM.CPU(3), ASM.IO(), ASM.CPU(1)]) 
 
     # CALL RET Stack TEST

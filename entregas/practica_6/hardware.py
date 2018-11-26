@@ -323,10 +323,8 @@ class MMU():
         if (logicalAddress > self._limit):
             raise Exception("Invalid Address,  {logicalAddress} is higher than process limit: {limit}".format(limit = self._limit, logicalAddress = logicalAddress))
 
-        # calculamos la pagina y el offset correspondiente a la direccion logica recibida
         pageId = logicalAddress // self._frameSize
         offset = logicalAddress % self._frameSize
-
         # buscamos la direccion Base del frame donde esta almacenada la pagina
         try:
             page = self._tlb[pageId]
@@ -353,6 +351,7 @@ class MMU():
     def write(self, logicalAddress, value):
         self._memory.put(self.logicalToPhysicalAddress(logicalAddress), value)
         pageId = logicalAddress // self._frameSize
+        print("----------------------WRiTE PAGE ID ", pageId)
         page = self._tlb.get(pageId)
         page.dirty = True
         self._tlb.update({pageId:page})

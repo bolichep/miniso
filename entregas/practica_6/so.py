@@ -438,16 +438,20 @@ class Loader():
         else :
             print("-------------> voy buscarlo a disco")
             programCode = self._fs.read(pcb.path)
+            print("------------- instrucioes ", programCode)
             instrFrom= pageId * self._mm._frameSize
             rest = len(programCode.instructions) - instrFrom 
             res = min( rest, self._mm._frameSize)
-            instrUntil= instrFrom + rest
+            instrUntil= instrFrom + res
             for instAddr in range(instrFrom, instrUntil):
-                offset = instAddr % self._mm._frameSize
-                pageNumber = instAddr // self._mm._frameSize
-                physicalAddress = offset + frameId * self._mm._frameSize
-                inst = programCode.instructions[instAddr]   
-                self._mm.memory.put(physicalAddress, inst)
+            	print("---------------Desde ", instrFrom)
+            	print("---------------Hasta ", instrUntil)
+            	offset = instAddr % self._mm._frameSize
+            	pageNumber = instAddr // self._mm._frameSize
+            	physicalAddress = offset + frameId * self._mm._frameSize
+            	inst = programCode.instructions[instAddr]
+            	print("------------Instruccion ", inst)   
+            	self._mm.memory.put(physicalAddress, inst)
 
 
 
