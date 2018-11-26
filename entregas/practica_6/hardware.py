@@ -208,8 +208,9 @@ class InterruptVector():
     def handle(self, irq):
         log.logger.info("Handling {type} irq with parameters = {parameters}".format(type=irq.type, parameters=irq.parameters ))
         self.lock.acquire()
-        self._handlers[irq.type].execute(irq)
+        ret = self._handlers[irq.type].execute(irq)
         self.lock.release()
+        return ret
 
 
 ## emulates the Internal Clock
@@ -281,7 +282,7 @@ class Memory():
         ## return "Memoria = {mem}".format(mem=self._cells)
 
 ## emulates the Memory Management Unit (MMU)
-class MMU():
+class MMU:
 
     def __init__(self, memory):
         self._memory = memory
@@ -322,19 +323,21 @@ class MMU():
         pageId = logicalAddress // self._frameSize
         offset = logicalAddress % self._frameSize
 
-        # if isValid : 
-        #   buscamos la direccion Base del frame donde esta 
+        # if isValid :
+        #   buscamos la direccion Base del frame donde esta
         #   almacenada la pagina
-        # else: page Fault
+        # else: page Fault #(1)
         if pageId in self._tlb and self._tlb[pageId].isValid():
             try:
                 frameId = self._tlb[pageId].frame
             except:
                 raise Exception("\n*\n* ERROR \n*\n Error en el MMU\nNo se cargo la pagina  {pageId}".format(pageId = str(pageId)))
-        else:
+        else: #(2)
             pageFaultIRQ = IRQ(PAGE_FAULT_INTERRUPTION_TYPE, pageId)
-            HARDWARE.cpu._interruptVector.handle(pageFaultIRQ)
-            
+            frameId = HARDWARE.cpu._interruptVector.handle(pageFaultIRQ)
+            print("And Now is Valid:\n", pageId, frameId, "\n", self._tlb)
+            self._tlb[pageId].frame = frameId #(5) And now isValid
+
 
         ##calculamos la direccion fisica resultante
         frameBaseDir  = self._frameSize * frameId
@@ -344,6 +347,8 @@ class MMU():
 
     def write(self, logicalAddress, value):
         self._memory.put(self.logicalToPhysicalAddress(logicalAddress), value)
+        pageId = logicalAddress // self._frameSize
+        self._tlb[pageId].dirty = True
 
     def fetch(self,  logicalAddress):
         # obtenemos la instrucción alocada en esa direccion
@@ -361,7 +366,6 @@ class Cpu():
         self._interruptVector = interruptVector
         self._pc = -1
         self._ir = None
-        self._or = None
         self._ac = 0
         self._bc = 0
         self._zf = True

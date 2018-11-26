@@ -27,11 +27,10 @@ class shell():
     run            : corre el codigo previamente cargado con load
     """
 
-    fs = dict()
-    fs.update({'uno':'CPU,CPU,IO,CPU,CPU,CPU,IO,CPU,CPU'})
-    fs.update({'dos':'CPU,CPU,CPU,CPU,IO,CPU'})
-    fs.update({'tres':'JMP,2,CPU,EXIT'})
 
+    readline.add_history('tick 1')
+    readline.add_history('start')
+    readline.add_history('stop')
     def com(kernel):
         #log.logger.setLevel(60) # apago el log
         #HARDWARE.switchOff()
@@ -39,7 +38,7 @@ class shell():
         _code = []
         _name = []
         while (_consolaCorriendo):
-            try:
+            #try:
                 comandos = []
                 while not comandos:
                     comandos = input("& ").split()
@@ -145,9 +144,9 @@ class shell():
                         comandos.pop(0)
 
 
-            except KeyboardInterrupt:
-                print("\nTo exit, type: quit<Enter>\nor help to see commands")
-                pass
-            except (IndexError, AttributeError):
-                print("IndexError or AttributeError at {}".format(sys.exc_info()[-1].tb_lineno))
-                pass
+            #except KeyboardInterrupt:
+            #    print("\nTo exit, type: quit<Enter>\nor help to see commands")
+            #    pass
+            #except (IndexError, AttributeError):
+            #    print("IndexError or AttributeError at {}".format(sys.exc_info()[-1].tb_lineno))
+            #    pass

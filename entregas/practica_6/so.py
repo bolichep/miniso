@@ -195,18 +195,18 @@ class TimeoutInterruptionHandler(AbstractInterruptionHandler):
 class PageFaultInterruptionHandler(AbstractInterruptionHandler):
 
     def execute(self, irq):
-        # (4)
+        #(4)
         pageId = irq.parameters
         pcb = self.kernel.pcbTable.runningPCB
-        if allocFrame()[0]: 
-            self.kernel.loader.loadPage(pcb.path, pageId, allocFrame()[1])
+        hasFrame, frameId = self.kernel._memoryManager.allocFrame()
+        if hasFrame:
+            self.kernel.loader.loadPage(pcb.path, pageId, frameId)
+            print(HARDWARE.memory)
         else:
-            pass
+            print("FATAL ERROR No Frames to alloc", pageId)
+            raise Exception("\n*\n* FATAL ERROR No Frames to alloc\n*\n")
 
-
-
-        print("runningPCB: ", self.kernel.pcbTable.runningPCB)
-        print("PAGE FAULT", pageId)
+        return frameId
 
 #emul dispacher
 class Dispacher():
@@ -214,12 +214,10 @@ class Dispacher():
         self._kernel = kernel
 
     def load(self, pcb):
-        #HARDWARE.cpu.pc = pcb.pc
         HARDWARE.cpu.context = pcb.context #all reg in a big tuple
         HARDWARE.mmu.limit = pcb.limit
         HARDWARE.mmu.resetTLB()
         pages = self._kernel.memoryManager.getPageTable(pcb.pid)
-        #pages = pcb.pages
         for pageId in range(0, len(pages)):
             HARDWARE.mmu.setPageFrame(pageId, pages[pageId])
         HARDWARE.timer.reset()
@@ -384,10 +382,11 @@ class Loader():
         programCode = self._fs.read(path)
         programSize = len(programCode.instructions)
         pagesToCreate = programSize // self._mm._frameSize
+        pagesToCreate += 1 if programSize % self._mm._frameSize > 1 else 0
         # limit = programSize - 1
-        return [Page() for x in range(0, pagesToCreate)], programSize - 1 
+        return [Page() for x in range(0, pagesToCreate)], programSize - 1
 
-    """    
+    """
     # Load a page from disk, fs or (...swap ?)
     # we got a frame where to write the page that
     # we load from path (or...)
@@ -398,9 +397,18 @@ class Loader():
         progSize  = len(programCode.instructions)
         seekFrom  = pageId * self._mm._frameSize
         seekTo    = seekFrom + self._mm._frameSize
-        pageOfCode = programCode.instructions[seekFrom, seekTo]
-       
+        pageOfCode = programCode.instructions[seekFrom: seekTo]
+
         physicalAddress = frameId * self._mm._frameSize
+
+        print("At load Page:",
+            "programCode", programCode,
+            "progSize", progSize,
+            "seekFrom", seekFrom,
+            "seekTo" , seekTo ,
+            "pageOfCode", pageOfCode,
+            "physicalAddress", physicalAddress )
+
         for instruction in pageOfCode:
             self._mm.memory.put(physicalAddress, instruction)
             physicalAddress += 1
@@ -623,7 +631,7 @@ class Page:
 
     # temporaly assign a frame number instead of None
     def __init__(self):
-        self._frame = frameDummy.new() # QQ
+        self._frame = None # frameDummy.new() # QQ
         self._dirty = False
         self._chance = 0
 
@@ -634,8 +642,20 @@ class Page:
     def frame(self):
         return self._frame
 
+    @frame.setter
+    def frame(self, value):
+        self._frame = value
+
+    @property
+    def dirty(self):
+        return self._dirty
+
+    @dirty.setter
+    def dirty(self, value):
+        self._dirty = value
+
     def __repr__(self):
-        return "Page: frame:{} dirty:{} chance:{}".format( self._frame, self._dirty, self._chance)
+        return "Page: frame:{} dirty:{} chance:{}\n".format( self._frame, self._dirty, self._chance)
 
 
 class MemoryManager:
@@ -645,25 +665,27 @@ class MemoryManager:
         #self._freeFrames = [Page() for x in range (0,(memory.getLeng() // frameSize)) ]
         ### or keep a list of free framesIds
         ### and a list of used frames
-        self._freeFrames = [x for x in range(0,memory.getLeng() // frameSize)] 
+        self._freeFrames = [x for x in range(0,memory.getLeng() // frameSize)]
         self._usedFrames = []
         self._frameSize = frameSize
         self._pageTable = dict()
 
-    def allocFrame(self): # (3) 
+    def allocFrame(self): #(3)
         # QQ
         if self._freeFrames:
-            allocatedFrame =  self._freeFrames.pop() 
+            allocatedFrame =  self._freeFrames.pop()
+            self._usedFrames += [allocatedFrame]
         else:
             allocatedFrame = self.deallocateFrame()
+        print("AllocFrame:", self._freeFrames, self._usedFrames)
         return True, allocatedFrame
 
-    def dealocateFrame(self):
-        # QQ ret firs in list
-        self._freeFrames += [self.usedFrames.pop()]
+    def deallocateFrame(self):
+        # QQ
+        self._freeFrames += [self._usedFrames.pop()]
         return self._freeFrames[-1]
-        
 
+    """
     def allocFrames(self, numberOfCells):
         framesToAlloc = 1 if numberOfCells % self._frameSize else 0
         framesToAlloc += numberOfCells // self._frameSize
@@ -674,6 +696,7 @@ class MemoryManager:
             allocatedFrames = []
         #print("Allocating: ", allocatedFrames, "Frees: ",  self._freeFrames, "FrameSize: ", self._frameSize)
         return allocatedFrames
+    """
 
     def freeFrames(self, frames):
         #print("Freeing: ", frames, "Prev Frees: ", self._freeFrames)
