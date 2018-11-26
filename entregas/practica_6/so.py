@@ -195,9 +195,15 @@ class TimeoutInterruptionHandler(AbstractInterruptionHandler):
 class PageFaultInterruptionHandler(AbstractInterruptionHandler):
 
     def execute(self, irq):
+        # (4)
         pageId = irq.parameters
+        pcb = self.kernel.pcbTable.runningPCB
+        if allocFrame()[0]: 
+            self.kernel.loader.loadPage(pcb.path, pageId, allocFrame()[1])
+        else:
+            pass
 
-        self.kernel.loader.loadPage(pageId, allocFrame())
+
 
         print("runningPCB: ", self.kernel.pcbTable.runningPCB)
         print("PAGE FAULT", pageId)
@@ -385,6 +391,7 @@ class Loader():
     # Load a page from disk, fs or (...swap ?)
     # we got a frame where to write the page that
     # we load from path (or...)
+    # frameId : int
     """
     def loadPage(self, path, pageId, frameId):
         programCode = self._fs.read(path)
@@ -637,12 +644,25 @@ class MemoryManager:
         self._memory = memory
         #self._freeFrames = [Page() for x in range (0,(memory.getLeng() // frameSize)) ]
         ### or keep a list of free framesIds
+        ### and a list of used frames
         self._freeFrames = [x for x in range(0,memory.getLeng() // frameSize)] 
+        self._usedFrames = []
         self._frameSize = frameSize
         self._pageTable = dict()
 
-    def allocFrame(self):
-        return self._freeFrames.pop() if self._freeFrames else []
+    def allocFrame(self): # (3) 
+        # QQ
+        if self._freeFrames:
+            allocatedFrame =  self._freeFrames.pop() 
+        else:
+            allocatedFrame = self.deallocateFrame()
+        return True, allocatedFrame
+
+    def dealocateFrame(self):
+        # QQ ret firs in list
+        self._freeFrames += [self.usedFrames.pop()]
+        return self._freeFrames[-1]
+        
 
     def allocFrames(self, numberOfCells):
         framesToAlloc = 1 if numberOfCells % self._frameSize else 0
