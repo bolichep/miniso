@@ -354,10 +354,11 @@ class MMU:
         for page in list(self._tlb.values()):
             page.frame = None if page.frame is frameId else page.frame
 
-    def write(self, logicalAddress, value):
+    def store(self, logicalAddress, value):
         self._memory.put(self.logicalToPhysicalAddress(logicalAddress), value)
         pageId = logicalAddress // self._frameSize
         self._tlb[pageId].dirty = True
+        self._tlb[pageId].chance = 1
 
     def fetch(self,  logicalAddress):
         # obtenemos la instrucción alocada en esa direccion
@@ -412,7 +413,7 @@ class Cpu():
 
         if self._ir == 'CALL':
             self._sp += 1
-            self._mmu.write(self._sp, self._pc )
+            self._mmu.store(self._sp, self._pc )
             self._pc = int(self._or)
             #print("CALL instruction")
 
@@ -423,7 +424,7 @@ class Cpu():
 
         if self._ir == 'PUSHA':
             self._sp += 1
-            self._mmu.write(self._sp, self._ac)
+            self._mmu.store(self._sp, self._ac)
             #print("PUSHA instruction")
 
         if self._ir == 'POPA':
@@ -433,7 +434,7 @@ class Cpu():
 
         if self._ir == 'PUSHB':
             self._sp += 1
-            self._mmu.write(self._sp, self._bc)
+            self._mmu.store(self._sp, self._bc)
             #print("PUSHB instruction")
 
         if self._ir == 'POPB':
