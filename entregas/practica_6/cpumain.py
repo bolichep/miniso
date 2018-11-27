@@ -13,6 +13,15 @@ if __name__ == '__main__':
     log.setupLogger()
     log.logger.info('Starting emulator')
 
+    """
+    ALERTA
+    """
+    ## Con RAM32/FS(4,8,16) se dispara un bug:
+    ## Exception: Invalid Address,  11 is higher than process limit: 10 
+    ## la Address cambia pero siempre es uno mas del limite
+    ## PERO!!!! con frameSize 2 no falla
+    ## setup our hardware and set memory size to 8 "cells"
+    HARDWARE.setup(32)
 
     SCHEDULER_FCFS = 'FCFS'
     SCHEDULER_RR = 'RR'
@@ -40,15 +49,6 @@ if __name__ == '__main__':
 
 
 
-    """
-    ALERTA
-    """
-    ## Con RAM32/FS(4,8,16) se dispara un bug:
-    ## Exception: Invalid Address,  11 is higher than process limit: 10 
-    ## la Address cambia pero siempre es uno mas del limite
-    ## PERO!!!! con frameSize 2 no falla
-    ## setup our hardware and set memory size to 8 "cells"
-    HARDWARE.setup(32)
 
     ## Switch on computer
     HARDWARE.switchOn()
