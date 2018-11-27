@@ -32,8 +32,9 @@ class shell():
 
     readline.add_history('tick 1')
     readline.add_history('start')
-    readline.add_history('stop')
     readline.add_history('ticktime 0.1')
+    readline.add_history('/bin/prg1')
+    readline.add_history('stop')
     def com(kernel):
         #log.logger.setLevel(60) # apago el log
         #HARDWARE.switchOff()
@@ -144,13 +145,13 @@ class shell():
                     if comandos[0] == 'tick':
                         comandos.pop(0)
                         count = 1
-                        if comandos and isinstance(comandos[0], int):
+                        if comandos and comandos[0] != ';' and isinstance(int(comandos[0]), int):
                             count = int(comandos[0])
                         while count:
                             HARDWARE.clock.tick(1)
                             count -= 1
 
-                    if kernel.fileSystem.read(comandos[0]) != None:
+                    if comandos and kernel.fileSystem.read(comandos[0]) != None:
                         kernel.run(comandos[0], 
                                 3 if len(comandos) < 2 
                                 else int(comandos[1]))

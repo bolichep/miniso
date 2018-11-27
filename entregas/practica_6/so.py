@@ -144,7 +144,7 @@ class KillInterruptionHandler(AbstractInterruptionHandler):
         self.contextSwitchFromRunningTo(State.sterminated)
         pages= self.kernel.memoryManager.getPageTable(pcb.pid)
 
-        self.kernel._memoryManager.freeFrames(pages)
+        #self.kernel._memoryManager.freeFrames(pages)
 
 
 class NewInterruptionHandler(AbstractInterruptionHandler):
@@ -218,13 +218,19 @@ class Dispacher():
         HARDWARE.cpu.context = pcb.context #all reg in a big tuple
         HARDWARE.mmu.limit = pcb.limit
         HARDWARE.mmu.resetTLB()
+        # pasamos las paginas del pid q estan en MM al mmu
         pages = self._kernel.memoryManager.getPageTable(pcb.pid)
         for pageId in range(0, len(pages)):
             HARDWARE.mmu.setPageFrame(pageId, pages[pageId])
         HARDWARE.timer.reset()
-        #print("pid: ", pcb.pid, "prio: ", pcb.priority, "TLB: ", HARDWARE.mmu._tlb)
 
     def save(self, pcb):
+        #En el pcb las paginas son una lista
+        #En el tlb las paginas estan mapeadas  pagina/Page(framestate)
+        #En el MM  las paginas estab mapeadas  pid/Pages (todas)
+        #Debemos pasar las paginas del mmu.tlb a la MM.pageTable
+        pcb.pages = list(HARDWARE.mmu.tlb.values())
+        self._kernel.memoryManager.putPageTable(pcb.pid, pcb.pages)
         pcb.context = HARDWARE.cpu.context # all regs in a big tuple
         HARDWARE.cpu.pc = -1
 
@@ -359,8 +365,8 @@ class ProcessControlBlock():
         self._state = state
 
     def __repr__(self):
-        return "PCB: pid:{:>3} prio:{:>2} pc:{:>3} limit:{:>3} state: {} pages: {}\n".format(
-                self._pid, self._priority, self._pc, self._limit, self._state, self._pages)
+        return "PCB: path:{:<8} pid:{:>3} prio:{:>2} pc:{:>3} limit:{:>3} state: {} pages: {}\n".format(
+                self._path, self._pid, self._priority, self._pc, self._limit, self._state, self._pages)
 
 # emulates the loader program( prueba)
 class Loader():
@@ -383,7 +389,7 @@ class Loader():
         programCode = self._fs.read(path)
         programSize = len(programCode.instructions)
         pagesToCreate = programSize // self._mm._frameSize
-        pagesToCreate += 1 if programSize % self._mm._frameSize > 1 else 0
+        pagesToCreate += 1 if programSize % self._mm._frameSize >= 1 else 0
         # limit = programSize - 1
         return [Page() for x in range(0, pagesToCreate)], programSize - 1
 
@@ -413,7 +419,7 @@ class Loader():
         progSize = len(programCode.instructions)
         pages = self._mm.allocFrames(progSize)
         if not pages:
-            print(" SEPARAR LOAD y CREATE" )
+            #print(" SEPARAR LOAD y CREATE" )
             raise Exception("\x9B37;44m\x9B2J\x9B12;18HException: No Hay memoria. [BSOD]... o demandá ;P \x9B14;18H(!!!)\x9B0m")
 
         for instAddr in range(0, progSize):
@@ -663,19 +669,17 @@ class MemoryManager:
         self._freeFrameIds = [x for x in range(0,memory.getLeng() // frameSize)]
         self._usedFrameIds = []
         self._frameSize = frameSize
-        self._pageTable = dict()
+        self._pageTable = dict()  # {pid : pages} pages list of Page()
 
     def allocFrame(self): #(3)
         # QQ
-        print("IN  ALLOCFRAME:\n", self._pageTable, "\nEND of self.pageTable",  self._freeFrameIds,  self._usedFrameIds )
         if self._freeFrameIds:
             allocatedFrame = self.allocateFrame()
         else:
             allocatedFrame = self.deallocateFrame()
-        print("OUT ALLOCFRAME:\n", self._pageTable, "\nEND of self.pageTable",  self._freeFrameIds,  self._usedFrameIds )
         return True, allocatedFrame
 
-    def allocateFrame(self):
+    def allocateFrame(self): 
         self._usedFrameIds += [self._freeFrameIds.pop()]
         return self._usedFrameIds[-1]
 
@@ -684,20 +688,9 @@ class MemoryManager:
         self._freeFrameIds += [self._usedFrameIds.pop()]
         return self._freeFrameIds[-1]
 
-    """
-    def allocFrames(self, numberOfCells):
-        framesToAlloc = 1 if numberOfCells % self._frameSize else 0
-        framesToAlloc += numberOfCells // self._frameSize
-        if framesToAlloc <= len(self._freeFrames):
-            allocatedFrames = self._freeFrames[0:framesToAlloc]
-            self._freeFrames = self._freeFrames[framesToAlloc:]
-        else:
-            allocatedFrames = []
-        #print("Allocating: ", allocatedFrames, "Frees: ",  self._freeFrames, "FrameSize: ", self._frameSize)
-        return allocatedFrames
-    """
+    # en Memory Manager
 
-    def freeFrames(self, frames):
+    def freeFrames(self, frames): 
         #print("Freeing: ", frames, "Prev Frees: ", self._freeFrameIds)
         FrameIds = [page.frame for page in frames]
         [(self._usedFrameIds.remove(x), self._freeFrameIds.append(x)) for x in FrameIds]

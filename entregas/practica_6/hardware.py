@@ -288,7 +288,7 @@ class MMU:
         self._memory = memory
         self._frameSize = 0
         self._limit = 999
-        self._tlb = dict()
+        self._tlb = dict()  # a map pageId(Zbased)/page(Page())
 
     @property
     def limit(self):
@@ -306,6 +306,10 @@ class MMU:
     def frameSize(self, frameSize):
         self._frameSize = frameSize
 
+    @property
+    def tlb(self):
+        return self._tlb
+
     def resetTLB(self):
         self._tlb = dict()
 
@@ -313,7 +317,7 @@ class MMU:
     # frameRef is a instance of Page() (from so.py)
     def setPageFrame(self, pageId, frameRef):
         #print("setPageFrame: pageId:", pageId, " frameRef:", frameRef)
-        self._tlb[pageId] = frameRef
+        self._tlb[pageId] = frameRef #frameRef instance of Page() 
 
     def logicalToPhysicalAddress(self, logicalAddress):
         if (logicalAddress > self._limit):
@@ -335,14 +339,22 @@ class MMU:
         else: #(2)
             pageFaultIRQ = IRQ(PAGE_FAULT_INTERRUPTION_TYPE, pageId)
             frameId = HARDWARE.cpu._interruptVector.handle(pageFaultIRQ)
+            # invalidate other page with same frameId
+            self.__invalidatePageWithFrame(frameId)
             self._tlb[pageId].frame = frameId #(5) And now isValid
-            print("And Now is Valid:\n", pageId, frameId, "\n", self._tlb)
+            #print("And Now is Valid:\n", pageId, frameId, "\n", self._tlb)
 
         ##calculamos la direccion fisica resultante
         frameBaseDir  = self._frameSize * frameId
         physicalAddress = frameBaseDir + offset
 
         return physicalAddress
+
+    def __invalidatePageWithFrame(self, frameId):
+        #print("tlb before:", self._tlb) 
+        for page in list(self._tlb.values()):
+            page.frame = None if page.frame is frameId else page.frame
+        #print("tlb after :", self._tlb) 
 
     def write(self, logicalAddress, value):
         self._memory.put(self.logicalToPhysicalAddress(logicalAddress), value)

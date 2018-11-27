@@ -72,14 +72,27 @@ if __name__ == '__main__':
         ASM.JNZ('START'),
         ASM.EXIT(1)])  # A = 0 
 
-    prg3 = Program([ASM.CPU(4), ASM.STORA(42), ASM.STORB(17), ASM.IO(), ASM.CPU(1)]) 
+    prg3 = Program([ASM.CPU(4), ASM.STORA(42), ASM.STORB(17), ASM.IO(), ASM.CPU(1),ASM.EXIT(1)]) 
+
+    prg4 = Program([ASM.CPU(7)])
 
     kernel.fileSystem.write("/bin/prg1", prg1)
     kernel.fileSystem.write("/bin/prg2", prg2)
     kernel.fileSystem.write("/bin/prg3", prg3)
+    kernel.fileSystem.write("/bin/prg4", prg4)
     # execute all programs "concurrently"
     #kernel.run("/bin/prg1",1)
-    #kernel.run("/bin/prg2",0)
-    kernel.run("/bin/prg3",0)
+    #kernel.run("/bin/prg2",3)
+    #kernel.run("/bin/prg3",2)
+    #kernel.run("/bin/prg1",1)
+    #kernel.run("/bin/prg2",4)
+    #kernel.run("/bin/prg3",0)
+    #kernel.run("/bin/prg1",1)
+    #kernel.run("/bin/prg2",1)
+    #kernel.run("/bin/prg3",0)
+    #kernel.run("/bin/prg1",1)
+    #kernel.run("/bin/prg2",2)
+    #kernel.run("/bin/prg3",0)
+    #kernel.run("/bin/prg1",1) 
 
     shell.com(kernel)
