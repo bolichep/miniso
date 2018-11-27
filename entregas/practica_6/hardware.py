@@ -351,10 +351,8 @@ class MMU:
         return physicalAddress
 
     def __invalidatePageWithFrame(self, frameId):
-        #print("tlb before:", self._tlb) 
         for page in list(self._tlb.values()):
             page.frame = None if page.frame is frameId else page.frame
-        #print("tlb after :", self._tlb) 
 
     def write(self, logicalAddress, value):
         self._memory.put(self.logicalToPhysicalAddress(logicalAddress), value)

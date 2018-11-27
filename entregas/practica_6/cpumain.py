@@ -13,8 +13,6 @@ if __name__ == '__main__':
     log.setupLogger()
     log.logger.info('Starting emulator')
 
-    ## setup our hardware and set memory size to 8 "cells"
-    HARDWARE.setup(16)
 
     SCHEDULER_FCFS = 'FCFS'
     SCHEDULER_RR = 'RR'
@@ -41,12 +39,23 @@ if __name__ == '__main__':
     print("Runnnig", scheduler.name)
 
 
+
+    """
+    ALERTA
+    """
+    ## Con RAM32/FS(4,8,16) se dispara un bug:
+    ## Exception: Invalid Address,  11 is higher than process limit: 10 
+    ## la Address cambia pero siempre es uno mas del limite
+    ## PERO!!!! con frameSize 2 no falla
+    ## setup our hardware and set memory size to 8 "cells"
+    HARDWARE.setup(32)
+
     ## Switch on computer
     HARDWARE.switchOn()
 
     ## new create the Operative System Kernel
     # "booteamos" el sistema operativo
-    kernel = Kernel(HARDWARE,scheduler, frameSize = 8)
+    kernel = Kernel(HARDWARE,scheduler, frameSize = 2)
     # sleep(1)
 
     # Ahora vamos a intentar ejecutar 3 programas a la vez
@@ -72,7 +81,13 @@ if __name__ == '__main__':
         ASM.JNZ('START'),
         ASM.EXIT(1)])  # A = 0 
 
-    prg3 = Program([ASM.CPU(4), ASM.STORA(42), ASM.STORB(17), ASM.IO(), ASM.CPU(1),ASM.EXIT(1)]) 
+    prg3 = Program([
+        ASM.CPU(4),
+        ASM.STORA(42),
+        ASM.STORB(17),
+        ASM.IO(),
+        ASM.CPU(1),
+        ASM.EXIT(1)]) 
 
     prg4 = Program([ASM.CPU(7)])
 
@@ -81,18 +96,18 @@ if __name__ == '__main__':
     kernel.fileSystem.write("/bin/prg3", prg3)
     kernel.fileSystem.write("/bin/prg4", prg4)
     # execute all programs "concurrently"
-    #kernel.run("/bin/prg1",1)
-    #kernel.run("/bin/prg2",3)
-    #kernel.run("/bin/prg3",2)
-    #kernel.run("/bin/prg1",1)
-    #kernel.run("/bin/prg2",4)
-    #kernel.run("/bin/prg3",0)
-    #kernel.run("/bin/prg1",1)
-    #kernel.run("/bin/prg2",1)
-    #kernel.run("/bin/prg3",0)
-    #kernel.run("/bin/prg1",1)
-    #kernel.run("/bin/prg2",2)
-    #kernel.run("/bin/prg3",0)
-    #kernel.run("/bin/prg1",1) 
+    kernel.run("/bin/prg1",1)
+    kernel.run("/bin/prg2",3)
+    kernel.run("/bin/prg3",2)
+    kernel.run("/bin/prg1",1)
+    kernel.run("/bin/prg2",4)
+    kernel.run("/bin/prg3",0)
+    kernel.run("/bin/prg1",1)
+    kernel.run("/bin/prg2",1)
+    kernel.run("/bin/prg3",0)
+    kernel.run("/bin/prg1",1)
+    kernel.run("/bin/prg2",2)
+    kernel.run("/bin/prg3",0)
+    kernel.run("/bin/prg1",1) 
 
     shell.com(kernel)

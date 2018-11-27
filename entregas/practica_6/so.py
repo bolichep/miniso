@@ -388,6 +388,7 @@ class Loader():
     def create(self, path):
         programCode = self._fs.read(path)
         programSize = len(programCode.instructions)
+        #print("###", programSize, programCode.instructions)
         pagesToCreate = programSize // self._mm._frameSize
         pagesToCreate += 1 if programSize % self._mm._frameSize >= 1 else 0
         # limit = programSize - 1
