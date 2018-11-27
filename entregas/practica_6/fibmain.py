@@ -13,9 +13,6 @@ if __name__ == '__main__':
     log.setupLogger()
     log.logger.info('Starting emulator')
 
-    ## setup our hardware and set memory size to 32 "cells"
-    HARDWARE.setup(128)
-    HARDWARE.timeUnit = 0.01
 
     SCHEDULER_FCFS = 'FCFS'
     SCHEDULER_RR = 'RR'
@@ -41,6 +38,10 @@ if __name__ == '__main__':
 
     print("Runnnig", scheduler.name)
 
+
+    ## setup our hardware and set memory size to 32 "cells"
+    HARDWARE.setup(128)
+    HARDWARE.timeUnit = 0.01
 
     ## Switch on computer
     HARDWARE.switchOn()
