@@ -14,7 +14,7 @@ if __name__ == '__main__':
     log.logger.info('Starting emulator')
 
     ## setup our hardware and set memory size to 32 "cells"
-    HARDWARE.setup(2)
+    HARDWARE.setup(32)
     HARDWARE.timeUnit = 0.01
 
     SCHEDULER_FCFS = 'FCFS'
@@ -49,7 +49,7 @@ if __name__ == '__main__':
 
     ## new create the Operative System Kernel
     # "booteamos" el sistema operativo
-    kernel = Kernel(HARDWARE,scheduler, frameSize = 2)
+    kernel = Kernel(HARDWARE,scheduler, frameSize = 4)
     # sleep(1)
 
     # Ahora vamos a intentar ejecutar 3 programas a la vez

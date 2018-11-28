@@ -307,7 +307,7 @@ class MMU():
 
     def updateTLB(self, pageNumber, page):
         self._tlb.update({pageNumber: page})
-        print(self._tlb)
+        #print(self._tlb)
 
     @property    
     def getPages(self):
@@ -351,7 +351,7 @@ class MMU():
     def write(self, logicalAddress, value):
         self._memory.put(self.logicalToPhysicalAddress(logicalAddress), value)
         pageId = logicalAddress // self._frameSize
-        print("----------------------WRiTE PAGE ID ", pageId)
+        #print("----------------------WRiTE PAGE ID ", pageId)
         page = self._tlb.get(pageId)
         page.dirty = True
         self._tlb.update({pageId:page})
@@ -363,9 +363,11 @@ class MMU():
 
     def fetchInstr(self, frameId):
         listInst = []
+        number = frameId *self._frameSize
         for nInst in range(self._frameSize):
-            listInst.append(self._memory.get(frameId+nInst))
-            #print("------------------------>inst listInst", nInst)
+            instruct = self._memory.get(number + nInst)
+            listInst.append(instruct)
+            #print("------------------------>inst listInst", number +nInst, " instruct ", instruct)
         return listInst
 
 ## emulates the main Central Processor Unit
@@ -413,31 +415,37 @@ class Cpu():
         if self._ir == 'CALL':
             self._sp += 1
             self._mmu.write(self._sp, self._pc )
+            #print("-------------------------> Escribe valor de pc", self._pc, "en la poss de memoria sp", self._sp)
             self._pc = int(self._or)
             #print("CALL instruction")
 
         if self._ir == 'RET':
             self._pc = self._mmu.fetch(self._sp)
+            #print("------------------------> Esribe en pc el valor de memoria en la posicion sp", self._sp)
             self._sp -= 1
             #print("RET Instruction")
 
         if self._ir == 'PUSHA':
             self._sp += 1
             self._mmu.write(self._sp, self._ac)
+            #print("-------------------------> Escribe valor de ac", self._ac, "en la poss de memoria sp")
             #print("PUSHA instruction")
 
         if self._ir == 'POPA':
             self._ac = self._mmu.fetch(self._sp)
+            #print("------------------------> Esribe en ac el valor de memoria en la posicion sp", self._sp)
             self._sp -= 1
             #print("POPA instruction")
 
         if self._ir == 'PUSHB':
             self._sp += 1
             self._mmu.write(self._sp, self._bc)
+            #print("-------------------------> Escribe valor de bc", self._bc,  "en la poss de memoria sp",self._sp)
             #print("PUSHB instruction")
 
         if self._ir == 'POPB':
             self._bc = self._mmu.fetch(self._sp)
+            #print("------------------------> Esribe en bc el valor de memoria en la posicion sp", self._sp)
             self._sp -= 1
             #print("POPB instruction")
 

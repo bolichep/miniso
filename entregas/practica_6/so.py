@@ -219,7 +219,7 @@ class PageFaultInterruptionHandler(AbstractInterruptionHandler):
         self.kernel.memoryManager.setPage(runningPCB.pid, pageNumber, page)
         pages = self.kernel.memoryManager.getPageTable(runningPCB.pid)
         self.kernel.dispacher.loadTlb(pages)
-        print(self._kernel.hardware)
+        #print(self._kernel.hardware)
         #print("pcb en ejecucion ------->", runningPCB)
 
 #emul dispacher
@@ -429,18 +429,18 @@ class Loader():
     def loadPage(self, pcb, page, pageId, frameId):
         #print("Frame a alocar: ", frameId)
         if  page.dirty:
-            print("-------------> voy buscarlo a swap")
-            print("---------PID AND PAGE", pcb.pid, pageId)
+            #print("-------------> voy buscarlo a swap")
+            #print("---------PID AND PAGE", pcb.pid, pageId)
             programCode = self._mm.getCodePage(pcb.pid, pageId)
-            print("----------------- Instrucciones ", programCode)
+            #print("----------------- Instrucciones ", programCode)
             offset = 0
             for inst in programCode :
-                self._mm.memory.put(frameId + offset, inst)
+                self._mm.memory.put((frameId * self._mm._frameSize) + offset, inst)
                 offset += 1
         else :
-            print("-------------> voy buscarlo a disco")
+            #print("-------------> voy buscarlo a disco")
             programCode = self._fs.read(pcb.path)
-            print("------------- instrucioes ", programCode)
+            #print("------------- instrucioes ", programCode)
             instrFrom= pageId * self._mm._frameSize
             rest = len(programCode.instructions) - instrFrom 
             res = min( rest, self._mm._frameSize)
@@ -662,7 +662,7 @@ class SwapMemory:
 
     def saveProgram(self, pidProcess, page, instructions):
     	self._fs.update({(pidProcess, page):instructions})
-    	print("-------------------------->save Program swapMemory", self._fs)
+    	#print("-------------------------->save Program swapMemory", self._fs)
     
     def getCodePage(self, pidProcess, page):
     	return self._fs.get((pidProcess,page))
@@ -779,7 +779,7 @@ class MemoryManager:
         self._pageTables = dict()
         self._swapMemory = swapMemory
         self._pagesInMemory = []
-        self._victimSelector = SecondChance()
+        self._victimSelector = FIFO()
 
     def allocFrames(self, numberOfFrames):
         if numberOfFrames <= len(self._freeFrames):
@@ -818,9 +818,9 @@ class MemoryManager:
     def chooseVictim(self):
        pageToRemove = self._victimSelector.chooseOne(self._pagesInMemory)
        #print("pagina a Desalojar", pageToRemove)
-       print("PAGINA A REMOVEER ", pageToRemove)
+       #print("PAGINA A REMOVEER ", pageToRemove)
        if pageToRemove.dirty:
-       	   print("INFORMACION DE LA PAGINAA GUARDAR ", pageToRemove.pid, pageToRemove.number)
+       	   #print("INFORMACION DE LA PAGINAA GUARDAR ", pageToRemove.pid, pageToRemove.number)
            instruct = HARDWARE.mmu.fetchInstr(pageToRemove.frame)
            self.saveProgram(pageToRemove.pid, pageToRemove.number, instruct) 
        newFreeFrame = pageToRemove.returnFrame     #volverAka
@@ -870,7 +870,7 @@ class MemoryManager:
         return self._memory
 
     def saveProgram(self, pcbPid, pageNumber, listInstrucc):
-    	print("GUARDANDO PROGRAMA ", pcbPid, pageNumber, listInstrucc)
+    	#print("GUARDANDO PROGRAMA ", pcbPid, pageNumber, listInstrucc)
     	return self._swapMemory.saveProgram(pcbPid, pageNumber, listInstrucc)
 
     def getCodePage(self,pid, pageId):
