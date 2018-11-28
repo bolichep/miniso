@@ -701,7 +701,9 @@ class MemoryManager:
     def deallocateFrame(self):
         # QQ
         self._freeFrameIds += [self._usedFrameIds.pop()]
-        return self._freeFrameIds[-1]
+        deallocated = self._freeFrameIds[-1]
+        self.frameTable.update({allocated: None})
+        return deallocated
 
     # en Memory Manager
 
