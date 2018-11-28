@@ -277,7 +277,8 @@ class Memory():
     def __repr__(self):
         return tabulate(enumerate(self._cells), tablefmt='psql')
 
-    def getLeng(self) :
+    @property
+    def size(self) :
         return  self._size
         ## return "Memoria = {mem}".format(mem=self._cells)
 

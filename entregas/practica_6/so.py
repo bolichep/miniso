@@ -199,10 +199,8 @@ class PageFaultInterruptionHandler(AbstractInterruptionHandler):
         pageId = irq.parameters
         pcb = self.kernel.pcbTable.runningPCB
         hasFrame, frameId = self.kernel._memoryManager.allocFrame()
-        #print("Frame allocated:", frameId, "hasFrame:", hasFrame,"for Page:", pageId)
         if hasFrame:
             self.kernel.loader.loadPage(pcb.path, pageId, frameId)
-            #print(HARDWARE.memory)
         else:
             print("FATAL ERROR No Frames to alloc", pageId)
             raise Exception("\n*\n* FATAL ERROR No Frames to alloc\n*\n")
@@ -398,7 +396,7 @@ class Loader():
     # Load a page from disk, fs or (...swap ?)
     # we got a frame where to write the page that
     # we load from path (or...)
-    # frameId : int
+    # frame : int
     """
     def loadPage(self, path, pageId, frameId):
         programCode = self._fs.read(path)
@@ -415,6 +413,7 @@ class Loader():
 
         #print("At load Page:\n", "programCode", programCode, "progSize", progSize, "seekFrom", seekFrom, "seekTo" , seekTo , "pageOfCode", pageOfCode, "physicalAddress", physicalAddress )
 
+    """
     def load(self, path):
         programCode = self._fs.read(path)
         progSize = len(programCode.instructions)
@@ -431,6 +430,7 @@ class Loader():
             self._mm.memory.put(physicalAddress, inst)
 
         return pages, progSize - 1 # limit = progSize - 1
+    """
 
 
 class AbstractScheduler():
@@ -667,19 +667,27 @@ class MemoryManager:
         self._memory = memory
         ## keep a list of free framesIds
         ## and a list of used frameIds
-        self._freeFrameIds = [x for x in range(0,memory.getLeng() // frameSize)]
+        self._freeFrameIds = [x for x in range(0, memory.size // frameSize)]
+        #self._freeFrames = []
         self._usedFrameIds = []
         self._frameSize = frameSize
-        self._pageTable = dict()  # {pid : pages} pages list of Page()
+        self._pageTable = dict()  # {pid : pages} pages = list of Page()
 
+    # denota un numero de frame
     def allocFrame(self): #(3)
         # QQ
+        #print("at MM allocFrame:", self._freeFrameIds)
         if self._freeFrameIds:
             allocatedFrame = self.allocateFrame()
         else:
             allocatedFrame = self.deallocateFrame()
         return True, allocatedFrame
 
+    #En el pcb las paginas son una lista
+    #En el tlb las paginas estan mapeadas  pagina/Page(framestate)
+    #En el MM  las paginas estab mapeadas  pid/Pages (todas)
+    #
+ 
     def allocateFrame(self): 
         self._usedFrameIds += [self._freeFrameIds.pop()]
         return self._usedFrameIds[-1]
@@ -693,12 +701,12 @@ class MemoryManager:
 
     def freeFrames(self, frames): 
         #print("Freeing: ", frames, "Prev Frees: ", self._freeFrameIds)
-        FrameIds = [page.frame for page in frames]
-        [(self._usedFrameIds.remove(x), self._freeFrameIds.append(x)) for x in FrameIds]
+        [(self._usedFrameIds.remove(x), self._freeFrameIds.append(x)) for x in Frames]
         #print("Current Frees: ", FrameIds)
 
     def putPageTable(self, pid, pages):
         self._pageTable.update({pid: pages})
+        #self._freeFrames += pages
 
     def getPageTable(self, pid):
         return self._pageTable.get(pid)

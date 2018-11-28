@@ -21,7 +21,8 @@ class shell():
     pagetable      : muestra el contenido de la tabla de Paginas
     kill n         : kill process
     ticktime n     : establece el tiempo en segundos de cada tick
-    tick [n]       : envia n (o 1 por omision) tick de clock a los dispositivos subscriptos
+    tick n         : envia n  tick de clock a los dispositivos subscriptos
+    nice n         : establece el nivel de prioridad con que se ejecuten los programas
     ls             : lista los programas salvados
     save name code : salva el codigo en 'code' bajo el nombre 'name'
                      ej: save uno CPU,IO,CPU,EXIT
@@ -41,6 +42,7 @@ class shell():
         _consolaCorriendo = True
         _code = []
         _name = []
+        _nice = 3
         while (_consolaCorriendo):
             #try:
                 comandos = []
@@ -142,19 +144,19 @@ class shell():
                                     end="")
                         print(kernel.pcbTable)
 
+                    if comandos[0] == 'nice':
+                        comandos.pop(0)
+                        nice = int (comandos[0])
+
                     if comandos[0] == 'tick':
                         comandos.pop(0)
-                        count = 1
-                        if comandos and comandos[0] != ';' and isinstance(int(comandos[0]), int):
-                            count = int(comandos[0])
+                        count = int(comandos[0])
                         while count:
                             HARDWARE.clock.tick(1)
                             count -= 1
 
                     if comandos and kernel.fileSystem.read(comandos[0]) != None:
-                        kernel.run(comandos[0], 
-                                3 if len(comandos) < 2 
-                                else int(comandos[1]))
+                        kernel.run(comandos[0], _nice)
 
                     # done current command, see if we got next
                     while comandos and comandos[0] is not ';':
