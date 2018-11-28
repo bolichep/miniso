@@ -31,7 +31,7 @@ class shell():
     """
 
 
-    readline.add_history('tick 1')
+    readline.add_history('tick 1 ; memory')
     readline.add_history('start')
     readline.add_history('ticktime 0.1')
     readline.add_history('/bin/prg1')

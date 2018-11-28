@@ -663,7 +663,9 @@ class Page:
 
 class MemoryManager:
 
-    def __init__(self, memory, frameSize):
+    # hacemos trampa pasando el kernel.
+    def __init__(self, kernel, memory, frameSize):
+        self._kernel = kernel
         self._memory = memory
         ## keep a list of free framesIds
         ## and a list of used frameIds
@@ -671,6 +673,7 @@ class MemoryManager:
         #self._freeFrames = []
         self._usedFrameIds = []
         self._frameSize = frameSize
+        self._frameTable = dict() # {frameId : pidOwner}
         self._pageTable = dict()  # {pid : pages} pages = list of Page()
 
     # denota un numero de frame
@@ -680,6 +683,7 @@ class MemoryManager:
         if self._freeFrameIds:
             allocatedFrame = self.allocateFrame()
         else:
+            print("pcbrunning.pid:", self._kernel.pcbTable.runningPCB.pid)
             allocatedFrame = self.deallocateFrame()
         return True, allocatedFrame
 
@@ -688,9 +692,11 @@ class MemoryManager:
     #En el MM  las paginas estab mapeadas  pid/Pages (todas)
     #
  
-    def allocateFrame(self): 
+    def allocateFrame(self, pid): 
         self._usedFrameIds += [self._freeFrameIds.pop()]
-        return self._usedFrameIds[-1]
+        allocated = self._usedFrameIds[-1]
+        self.frameTable.update({allocated: pid})
+        return allocated
 
     def deallocateFrame(self):
         # QQ
@@ -755,7 +761,8 @@ class Kernel():
         self._fileSystem = Fsb()
 
         self._hardware.mmu.frameSize = frameSize
-        self._memoryManager = MemoryManager(self._hardware.memory, self._hardware.mmu.frameSize)
+        # TODO fly params leave self
+        self._memoryManager = MemoryManager(self, self._hardware.memory, self._hardware.mmu.frameSize)
 
         self._loader = Loader(self._fileSystem, self._memoryManager)
 
