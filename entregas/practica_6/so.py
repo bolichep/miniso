@@ -436,6 +436,7 @@ class Loader():
             offset = 0
             for inst in programCode :
                 self._mm.memory.put(frameId + offset, inst)
+                offset += 1
         else :
             print("-------------> voy buscarlo a disco")
             programCode = self._fs.read(pcb.path)
@@ -761,7 +762,7 @@ class FIFO:
 
     def chooseOne(self, usedFrames):
         if usedFrames : 
-            return usedFrames[0], 0
+            return usedFrames[0]
         else :
             raise Exception("\n*\n* ERROR \n*\n Error no se encuentran frames ocupados\n")
 

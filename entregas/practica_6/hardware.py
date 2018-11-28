@@ -365,7 +365,7 @@ class MMU():
         listInst = []
         for nInst in range(self._frameSize):
             listInst.append(self._memory.get(frameId+nInst))
-        print("------------------------>inst listInst", listInst)
+            #print("------------------------>inst listInst", nInst)
         return listInst
 
 ## emulates the main Central Processor Unit
