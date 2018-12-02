@@ -75,33 +75,37 @@ if __name__ == '__main__':
     fib n = fib (n-1) + fib (n-2)
     { 0,1,1,2,3,5,8,13,21,34,55,89,144,}
     """
-    fib = Program([
-        ASM.HEADER(16),
-        ASM.STORA('6'),      # fib(10) 2200 tick +/-
-        ASM.CALL('FIB'),
-        ASM.EXIT(1),
 
-        ASM.LABEL('FIB'),    # fib(n), A = n
-        ASM.STORB('0'),
-        ASM.CMPAB(),
-        ASM.JZ('RETORNO'),   # B = fib(n)
-        ASM.STORB('1'),
-        ASM.CMPAB(),
-        ASM.JZ('RETORNO'),   # B = fib(n)
-        ASM.DECA(1),         # n-1
-        ASM.PUSHA(),
-        ASM.CALL('FIB'),     # fib(n-1)
-        ASM.POPA(),
-        ASM.PUSHB(),         # save B = fib(n-1)
-        ASM.DECA(1),         # n-2
-        ASM.CALL('FIB'),     # B = fib(n-2)
-        ASM.POPA(),          # A = saved B = fib(n-1)
-        ASM.ADDAB(),         # A = fib(n-1) + fib(n-2)
-        ASM.PUSHA(),
-        ASM.POPB(),          # B = fib(n-1) + fib(n-2)
-        ASM.LABEL('RETORNO'),
-        ASM.RET()
-        ])
+
+    def fibo(x):
+        return Program([
+            ASM.HEADER(16),
+            ASM.STORA(x),      # fib(10) 2200 tick +/-
+            ASM.CALL('FIB'),
+            ASM.EXIT(1),
+            ASM.LABEL('FIB'),    # fib(n), A = n
+            ASM.STORB('0'),
+            ASM.CMPAB(),
+            ASM.JZ('RETORNO'),   # B = fib(n)
+            ASM.STORB('1'),
+            ASM.CMPAB(),
+            ASM.JZ('RETORNO'),   # B = fib(n)
+            ASM.DECA(1),         # n-1
+            ASM.PUSHA(),
+            ASM.CALL('FIB'),     # fib(n-1)
+            ASM.POPA(),
+            ASM.PUSHB(),         # save B = fib(n-1)
+            ASM.DECA(1),         # n-2
+            ASM.CALL('FIB'),     # B = fib(n-2)
+            ASM.POPA(),          # A = saved B = fib(n-1)
+            ASM.ADDAB(),         # A = fib(n-1) + fib(n-2)
+            ASM.PUSHA(),
+            ASM.POPB(),          # B = fib(n-1) + fib(n-2)
+            ASM.LABEL('RETORNO'),
+            ASM.RET()
+            ])
+
+    fib = fibo(6)
 
     kernel.fileSystem.write("/bin/exit", Program([
         ASM.HEADER(4),
@@ -124,7 +128,6 @@ if __name__ == '__main__':
 
         ]))
 
-    kernel.fileSystem.write("/fib", fib)
     #kernel.fileSystem.write("/bin/calltest", calltest)
     kernel.fileSystem.write("/prg1", prg1)
     kernel.fileSystem.write("/prg2", prg2)
@@ -141,6 +144,11 @@ if __name__ == '__main__':
 
     #kernel.run("/bin/exit", 4)
     #kernel.run("/bin/calltest", 1)
-    kernel.run("/fib", 3)
+    kernel.fileSystem.write("/fib1", fibo(6))
+    kernel.fileSystem.write("/fib2", fibo(7))
+    kernel.fileSystem.write("/fib3", fibo(4))
+    kernel.run("/fib1", 3)
+    kernel.run("/fib2", 3)
+    kernel.run("/fib3", 3)
 
     shell.com(kernel)
