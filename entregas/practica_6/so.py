@@ -613,16 +613,6 @@ class Gantt():
                 self._graph[pcb.pid] = "{}   {}    {}".format(pcb.pid, pcb.priority, " " * self._ticks)
 
 
-            """
-            if pcb.state == State.srunning:
-                self._graph[pcb.pid] += "\x9B7mR\x9B0m"
-            elif pcb.state == State.sready:
-                self._graph[pcb.pid] += "r"
-            elif pcb.state == State.swaiting:
-                self._graph[pcb.pid] += "w"
-            else:
-                self._graph[pcb.pid] += "."
-                """
             case = {State.srunning   : "\x9B7mR\x9B0m", 
                     State.sready     : "r",
                     State.swaiting   : "w",
