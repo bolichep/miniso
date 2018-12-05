@@ -27,14 +27,18 @@ class shell():
     run            : corre el codigo previamente cargado con load
     """
 
-    fs = dict()
-    fs.update({'uno':'CPU,CPU,IO,CPU,CPU,CPU,IO,CPU,CPU'})
-    fs.update({'dos':'CPU,CPU,CPU,CPU,IO,CPU'})
-    fs.update({'tres':'JMP,2,CPU,EXIT'})
+
+    def _tick(count):
+        nbrTick = 0
+        while count != nbrTick:
+            nbrTick += 1
+            HARDWARE.clock.tick(nbrTick)
 
     def com(kernel):
-        #log.logger.setLevel(60) # apago el log
-        #HARDWARE.switchOff()
+        ct = Thread(target = shell._com, kwargs = dict(kernel = kernel))
+        ct.start()
+
+    def _com(kernel):
         _consolaCorriendo = True
         _code = []
         _name = []
@@ -57,9 +61,6 @@ class shell():
                     if comandos[0] == 'ls':
                         for f  in kernel.fileSystem.root:
                             print("{:<8} {}".format(f, kernel.fileSystem.root.get(f)))
-
-                        for f in shell.fs:
-                            print("{:<8} {}".format(f, shell.fs.get(f)))
 
                     if comandos[0] == 'save':
                         kernel.fileSystem.write(comandos[1], 
@@ -125,10 +126,9 @@ class shell():
 
                     if comandos[0] == 'tick':
                         comandos.pop(0)
-                        count = int(comandos[0])
-                        while count:
-                            HARDWARE.clock.tick(1)
-                            count -= 1
+                        times = int(comandos[0])
+                        thread_shell_tick = Thread(target = shell._tick, kwargs = dict(count=times))
+                        thread_shell_tick.start()
 
                     if kernel.fileSystem.read(comandos[0]) != None:
                         kernel.run(comandos[0], 
