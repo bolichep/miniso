@@ -407,9 +407,9 @@ class Cpu():
             pass
 
         if self._ir == 'EXIT':
-            print("\x9B7m", end="")
+            print("\n\x9B7m", end="")
             print("A Reg : ", self._ac, "/ B Reg : ", self._bc,"/ z flag: ", self._zf)
-            print("\x9B0m", end="")
+            print("\x9B0m", end="\r")
             pass
 
         if self._ir == 'CALL':
