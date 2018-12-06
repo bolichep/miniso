@@ -91,6 +91,7 @@ if __name__ == '__main__':
             ASM.CMPAB(),
             ASM.JZ('RETORNO'),   # B = fib(n)
             ASM.DECA(1),         # n-1
+            ASM.IO(),            # add IO to preemtives scheduling
             ASM.PUSHA(),
             ASM.CALL('FIB'),     # fib(n-1)
             ASM.POPA(),
