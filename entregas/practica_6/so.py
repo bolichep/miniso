@@ -329,7 +329,7 @@ class ProcessControlBlock():
         self._pc  = 0 # TODO check if keep that
         self._state = State.snew
         # well knew cpu reset state
-        self._context = (0, 0, 0, -1, True) # keep sync with hardware#330
+        self._context = (0, 0, 0, -1, True) # keep sync with hardware#546
         self._path = programName
         self._priority = priority 
 
@@ -391,7 +391,7 @@ class ProcessControlBlock():
 
     def __repr__(self):
         return "PCB: pid:{:>3} prio:{:>2} baseDir:{:>3} pc:{} limit:{} state: {}\n".format(
-                self._pid, self._priority, self._baseDir, self._pc, self._limit, self._state)
+                self._pid, self._priority, self._baseDir, self._context[0], self._limit, self._state)
 
 # emulates the loader program( prueba)
 class Loader():
