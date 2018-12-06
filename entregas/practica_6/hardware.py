@@ -543,7 +543,7 @@ class Cpu():
 
     @property
     def context(self):
-        # keep sync with so#297 and setter below
+        # keep sync with so#394 and setter below
         return (self._pc, self._ac, self._bc, self._sp, self._zf)
 
     @context.setter
